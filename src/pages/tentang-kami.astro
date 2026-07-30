@@ -1,0 +1,41 @@
+---
+export const prerender = false;
+import Layout from '../layouts/Layout.astro';
+import { supabaseAdmin } from '../lib/supabase.js';
+
+// Fetch Tentang Kami page from DB
+let page = null;
+try {
+  const { data } = await supabaseAdmin
+    .from('site_pages')
+    .select('*')
+    .eq('slug', 'tentang-kami')
+    .eq('is_published', true)
+    .single();
+  page = data;
+} catch (e) {}
+
+const title = page?.title || 'Tentang Kami';
+const content = page?.content || '<p>Profil SDIT Al-Hidayah Sumenep.</p>';
+const metaTitle = page?.meta_title || title + ' - SDIT Al-Hidayah Sumenep';
+const metaDesc = page?.meta_description || 'Profil lengkap SDIT Al-Hidayah Sumenep, visi, misi, dan keunggulan sekolah.';
+---
+
+<Layout title={metaTitle}>
+  <section class="bg-gradient-to-br from-[#1e40af] via-[#312e81] to-[#1e1b4b] pt-32 pb-20">
+    <div class="max-w-4xl mx-auto px-4 text-center">
+      <h1 class="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight" style="letter-spacing:-0.02em;">
+        {title}
+      </h1>
+      <p class="text-blue-200 text-lg max-w-2xl mx-auto">
+        Mengenal lebih dekat SDIT Al-Hidayah Sumenep
+      </p>
+    </div>
+  </section>
+
+  <section class="bg-white py-16">
+    <div class="max-w-4xl mx-auto px-4">
+      <div class="card p-8 md:p-12 prose prose-blue max-w-none" set:html={content} />
+    </div>
+  </section>
+</Layout>

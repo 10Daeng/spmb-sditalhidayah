@@ -1,0 +1,201 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Pengaturan Umum" activeMenu="pengaturan">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Pengaturan Umum</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Informasi dasar sekolah yang ditampilkan di website publik</p>
+    </div>
+    <button id="btnSave" class="btn btn-primary">
+      <span class="material-symbols-outlined">save</span>
+      Simpan Pengaturan
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Identitas Sekolah -->
+    <div class="card p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="material-symbols-outlined text-blue-500">school</span>
+        <h3 class="font-semibold text-gray-900">Identitas Sekolah</h3>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nama Sekolah</label>
+          <input type="text" id="schoolName" class="input w-full" placeholder="SDIT Al-Hidayah">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Subtitle / Lokasi</label>
+          <input type="text" id="schoolSubtitle" class="input w-full" placeholder="Sumenep">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Alamat Lengkap</label>
+          <textarea id="schoolAddress" rows="3" class="input w-full resize-none" placeholder="Jl. Raya Sumenep-Manding..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kontak -->
+    <div class="card p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="material-symbols-outlined text-emerald-500">contact_phone</span>
+        <h3 class="font-semibold text-gray-900">Kontak</h3>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Telepon</label>
+          <input type="text" id="schoolPhone" class="input w-full" placeholder="(0328) 123456">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input type="email" id="schoolEmail" class="input w-full" placeholder="info@sditalhidayah.sch.id">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+          <input type="text" id="schoolWa" class="input w-full" placeholder="08123456789">
+        </div>
+      </div>
+    </div>
+
+    <!-- Social Media -->
+    <div class="card p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="material-symbols-outlined text-purple-500">share</span>
+        <h3 class="font-semibold text-gray-900">Social Media</h3>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Facebook URL</label>
+          <input type="url" id="fbUrl" class="input w-full" placeholder="https://facebook.com/...">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Instagram URL</label>
+          <input type="url" id="igUrl" class="input w-full" placeholder="https://instagram.com/...">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
+          <input type="url" id="ytUrl" class="input w-full" placeholder="https://youtube.com/...">
+        </div>
+      </div>
+    </div>
+
+    <!-- SEO & Fitur -->
+    <div class="card p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="material-symbols-outlined text-amber-500">tune</span>
+        <h3 class="font-semibold text-gray-900">SEO & Fitur</h3>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Default Meta Title</label>
+          <input type="text" id="metaTitle" class="input w-full" placeholder="SDIT Al-Hidayah Sumenep">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Default Meta Description</label>
+          <textarea id="metaDesc" rows="3" class="input w-full resize-none" placeholder="Deskripsi untuk Google..."></textarea>
+        </div>
+        <div class="flex items-center justify-between py-2">
+          <div>
+            <p class="font-medium text-sm text-gray-900">Indent SPMB Dibuka</p>
+            <p class="text-xs text-gray-500">Aktifkan untuk menerima Indent baru</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="registrationOpen" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
+        <div class="flex items-center justify-between py-2">
+          <div>
+            <p class="font-medium text-sm text-gray-900">Tampilkan Jadwal Tes</p>
+            <p class="text-xs text-gray-500">Tampilkan info jadwal tes di halaman publik</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="showTestSchedule" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 right-6 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2">
+    <span id="toastIcon" class="material-symbols-outlined">check_circle</span>
+    <span id="toastMsg"></span>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/admin/site-settings', { credentials: 'include' });
+    const result = await res.json();
+    if (result.data) {
+      const d = result.data;
+      document.getElementById('schoolName').value = d.school_name || '';
+      document.getElementById('schoolSubtitle').value = d.school_subtitle || '';
+      document.getElementById('schoolAddress').value = d.school_address || '';
+      document.getElementById('schoolPhone').value = d.school_phone || '';
+      document.getElementById('schoolEmail').value = d.school_email || '';
+      document.getElementById('schoolWa').value = d.school_whatsapp || '';
+      document.getElementById('fbUrl').value = d.facebook_url || '';
+      document.getElementById('igUrl').value = d.instagram_url || '';
+      document.getElementById('ytUrl').value = d.youtube_url || '';
+      document.getElementById('metaTitle').value = d.default_meta_title || '';
+      document.getElementById('metaDesc').value = d.default_meta_description || '';
+      document.getElementById('registrationOpen').checked = d.registration_open;
+      document.getElementById('showTestSchedule').checked = d.show_test_schedule;
+    }
+  } catch (e) {
+    console.error('Load settings error:', e);
+  }
+}
+
+document.getElementById('btnSave').addEventListener('click', async () => {
+  const body = {
+    school_name: document.getElementById('schoolName').value,
+    school_subtitle: document.getElementById('schoolSubtitle').value,
+    school_address: document.getElementById('schoolAddress').value,
+    school_phone: document.getElementById('schoolPhone').value,
+    school_email: document.getElementById('schoolEmail').value,
+    school_whatsapp: document.getElementById('schoolWa').value,
+    facebook_url: document.getElementById('fbUrl').value,
+    instagram_url: document.getElementById('igUrl').value,
+    youtube_url: document.getElementById('ytUrl').value,
+    default_meta_title: document.getElementById('metaTitle').value,
+    default_meta_description: document.getElementById('metaDesc').value,
+    registration_open: document.getElementById('registrationOpen').checked,
+    show_test_schedule: document.getElementById('showTestSchedule').checked
+  };
+
+  try {
+    const res = await fetch('/api/admin/site-settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body)
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Pengaturan berhasil disimpan');
+    } else {
+      showToast(result.error || 'Gagal menyimpan', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+});
+
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = type === 'error' ? 'error' : 'check_circle';
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+loadSettings();
+</script>

@@ -1,0 +1,19 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Lengkapi Data Siswa - SPMB SDIT Al-Hidayah">
+	<div id="complete-data-root"></div>
+	
+	<script>
+		import React from 'react';
+		import { createRoot } from 'react-dom/client';
+		import CompleteDataForm from '../../components/dashboard/CompleteDataForm';
+		
+		const container = document.getElementById('complete-data-root');
+		if (container) {
+			const root = createRoot(container);
+			root.render(React.createElement(CompleteDataForm));
+		}
+	</script>
+</Layout>

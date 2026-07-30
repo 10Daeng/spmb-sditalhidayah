@@ -1,0 +1,338 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Manajemen Pengguna" activeMenu="users">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Manajemen Pengguna</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Kelola admin, guru, staff, dan wali murid</p>
+    </div>
+    <button id="btnAdd" class="btn btn-primary" onclick="openModal()">
+      <span class="material-symbols-outlined">person_add</span>
+      Tambah Pengguna
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="card p-4 text-center">
+      <p class="text-2xl font-bold text-blue-600" id="statTotal">0</p>
+      <p class="text-xs text-gray-500">Total Pengguna</p>
+    </div>
+    <div class="card p-4 text-center">
+      <p class="text-2xl font-bold text-emerald-600" id="statActive">0</p>
+      <p class="text-xs text-gray-500">Aktif</p>
+    </div>
+    <div class="card p-4 text-center">
+      <p class="text-2xl font-bold text-amber-600" id="statInactive">0</p>
+      <p class="text-xs text-gray-500">Nonaktif</p>
+    </div>
+    <div class="card p-4 text-center">
+      <p class="text-2xl font-bold text-purple-600" id="statKepsek">0</p>
+      <p class="text-xs text-gray-500">Kepala Sekolah</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card p-4 mb-6">
+    <div class="flex flex-col sm:flex-row gap-4">
+      <input type="text" id="searchInput" class="input flex-1" placeholder="Cari nama atau email..." oninput="filterUsers()">
+      <select id="roleFilter" class="input !w-48" onchange="filterUsers()">
+        <option value="">Semua Role</option>
+        <option value="kepsek">Kepala Sekolah</option>
+        <option value="admin_tu">Admin TU</option>
+        <option value="tim_media">Tim Media</option>
+        <option value="keuangan">Keuangan</option>
+        <option value="panitia_spmb">Panitia SPMB</option>
+        <option value="guru">Guru</option>
+        <option value="walas">Wali Kelas</option>
+        <option value="walimurid">Wali Murid</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card overflow-hidden">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Pengguna</th>
+          <th>Role</th>
+          <th>No. HP</th>
+          <th>Status</th>
+          <th>Tanggal Daftar</th>
+          <th class="text-right">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="usersBody">
+        <tr><td colspan="6" class="text-center text-gray-400 py-10">Memuat...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Modal Add/Edit -->
+  <div id="modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="text-lg font-bold text-gray-900" id="modalTitle">Tambah Pengguna</h3>
+        <button onclick="closeModal()" class="p-1 hover:bg-gray-100 rounded-lg">
+          <span class="material-symbols-outlined text-gray-500">close</span>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <input type="hidden" id="userId">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+          <input type="text" id="userName" class="input w-full" placeholder="Nama lengkap" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input type="email" id="userEmail" class="input w-full" placeholder="email@sditalhidayah.sch.id" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Password <span id="passHint" class="text-xs text-gray-400">(Kosongkan jika tidak ingin mengubah)</span></label>
+          <input type="password" id="userPassword" class="input w-full" placeholder="Minimal 6 karakter">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+          <select id="userRole" class="input w-full" required>
+            <option value="">Pilih Role</option>
+            <option value="kepsek">Kepala Sekolah</option>
+            <option value="admin_tu">Admin TU</option>
+            <option value="tim_media">Tim Media</option>
+            <option value="keuangan">Keuangan</option>
+            <option value="panitia_spmb">Panitia SPMB</option>
+            <option value="guru">Guru</option>
+            <option value="walas">Wali Kelas</option>
+            <option value="walimurid">Wali Murid</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">No. HP</label>
+          <input type="text" id="userPhone" class="input w-full" placeholder="08...">
+        </div>
+        <div class="flex items-center gap-2 pt-2">
+          <input type="checkbox" id="userActive" class="w-4 h-4" checked>
+          <label for="userActive" class="text-sm text-gray-700">Akun aktif</label>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+        <button onclick="closeModal()" class="btn btn-ghost">Batal</button>
+        <button onclick="saveUser()" class="btn btn-primary">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 right-6 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2">
+    <span id="toastIcon" class="material-symbols-outlined">check_circle</span>
+    <span id="toastMsg"></span>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+let allUsers = [];
+let isEditMode = false;
+
+async function loadUsers() {
+  try {
+    const res = await fetch('/api/admin/users', { credentials: 'include' });
+    const result = await res.json();
+    allUsers = result.data || [];
+    renderTable(allUsers);
+    updateStats(allUsers);
+  } catch (e) {
+    document.getElementById('usersBody').innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-10">Gagal memuat data</td></tr>';
+  }
+}
+
+function updateStats(users) {
+  document.getElementById('statTotal').textContent = users.length;
+  document.getElementById('statActive').textContent = users.filter(u => u.is_active).length;
+  document.getElementById('statInactive').textContent = users.filter(u => !u.is_active).length;
+  document.getElementById('statKepsek').textContent = users.filter(u => u.role === 'kepsek').length;
+}
+
+function renderTable(users) {
+  const tbody = document.getElementById('usersBody');
+  if (users.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-10">Tidak ada pengguna</td></tr>';
+    return;
+  }
+
+  const roleLabels = {
+    kepsek: { text: 'Kepala Sekolah', class: 'bg-purple-50 text-purple-600' },
+    admin_tu: { text: 'Admin TU', class: 'bg-blue-50 text-blue-600' },
+    tim_media: { text: 'Tim Media', class: 'bg-pink-50 text-pink-600' },
+    keuangan: { text: 'Keuangan', class: 'bg-emerald-50 text-emerald-600' },
+    panitia_spmb: { text: 'Panitia SPMB', class: 'bg-amber-50 text-amber-600' },
+    guru: { text: 'Guru', class: 'bg-cyan-50 text-cyan-600' },
+    walas: { text: 'Wali Kelas', class: 'bg-indigo-50 text-indigo-600' },
+    walimurid: { text: 'Wali Murid', class: 'bg-gray-50 text-gray-600' }
+  };
+
+  tbody.innerHTML = users.map(u => {
+    const r = roleLabels[u.role] || { text: u.role, class: 'bg-gray-50 text-gray-600' };
+    const date = u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : '-';
+    return `<tr>
+      <td>
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">${(u.name || '?')[0].toUpperCase()}</div>
+          <div>
+            <p class="font-medium text-sm text-gray-900">${u.name || '-'}</p>
+            <p class="text-xs text-gray-500">${u.email}</p>
+          </div>
+        </div>
+      </td>
+      <td><span class="badge ${r.class}">${r.text}</span></td>
+      <td class="text-sm text-gray-600">${u.phone || '-'}</td>
+      <td>
+        <span class="badge ${u.is_active ? 'badge-verified' : 'badge-rejected'}">${u.is_active ? 'Aktif' : 'Nonaktif'}</span>
+      </td>
+      <td class="text-sm text-gray-500">${date}</td>
+      <td class="text-right">
+        <button onclick="editUser('${u.id}')" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+          <span class="material-symbols-outlined text-lg">edit</span>
+        </button>
+        <button onclick="deleteUser('${u.id}')" class="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus">
+          <span class="material-symbols-outlined text-lg">delete</span>
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterUsers() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const role = document.getElementById('roleFilter').value;
+  
+  let filtered = allUsers;
+  if (search) {
+    filtered = filtered.filter(u => (u.name || '').toLowerCase().includes(search) || (u.email || '').toLowerCase().includes(search));
+  }
+  if (role) {
+    filtered = filtered.filter(u => u.role === role);
+  }
+  renderTable(filtered);
+}
+
+function openModal() {
+  isEditMode = false;
+  document.getElementById('modalTitle').textContent = 'Tambah Pengguna';
+  document.getElementById('userId').value = '';
+  document.getElementById('userName').value = '';
+  document.getElementById('userEmail').value = '';
+  document.getElementById('userEmail').disabled = false;
+  document.getElementById('userPassword').value = '';
+  document.getElementById('userPassword').placeholder = 'Minimal 6 karakter';
+  document.getElementById('passHint').textContent = '';
+  document.getElementById('userRole').value = '';
+  document.getElementById('userPhone').value = '';
+  document.getElementById('userActive').checked = true;
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+}
+
+function editUser(id) {
+  const u = allUsers.find(x => x.id === id);
+  if (!u) return;
+  
+  isEditMode = true;
+  document.getElementById('modalTitle').textContent = 'Edit Pengguna';
+  document.getElementById('userId').value = u.id;
+  document.getElementById('userName').value = u.name || '';
+  document.getElementById('userEmail').value = u.email || '';
+  document.getElementById('userEmail').disabled = true;
+  document.getElementById('userPassword').value = '';
+  document.getElementById('userPassword').placeholder = 'Kosongkan jika tidak mengubah';
+  document.getElementById('passHint').textContent = '(Kosongkan jika tidak ingin mengubah)';
+  document.getElementById('userRole').value = u.role || '';
+  document.getElementById('userPhone').value = u.phone || '';
+  document.getElementById('userActive').checked = u.is_active;
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+async function saveUser() {
+  const id = document.getElementById('userId').value;
+  const body = {
+    name: document.getElementById('userName').value,
+    email: document.getElementById('userEmail').value,
+    password: document.getElementById('userPassword').value,
+    role: document.getElementById('userRole').value,
+    phone: document.getElementById('userPhone').value,
+    is_active: document.getElementById('userActive').checked
+  };
+
+  if (!body.name || !body.email || !body.role) {
+    showToast('Nama, email, dan role wajib diisi', 'error');
+    return;
+  }
+
+  if (!isEditMode && !body.password) {
+    showToast('Password wajib diisi untuk pengguna baru', 'error');
+    return;
+  }
+
+  try {
+    const url = isEditMode ? '/api/admin/users' : '/api/admin/users';
+    const method = isEditMode ? 'PUT' : 'POST';
+    if (isEditMode) body.id = id;
+    if (!body.password) delete body.password;
+    if (isEditMode) delete body.email;
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body)
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast(isEditMode ? 'Pengguna diupdate' : 'Pengguna dibuat');
+      closeModal();
+      loadUsers();
+    } else {
+      showToast(result.error || 'Gagal menyimpan', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+async function deleteUser(id) {
+  const u = allUsers.find(x => x.id === id);
+  if (!u) return;
+  if (!confirm(`Yakin ingin menghapus pengguna "${u.name}"?`)) return;
+
+  try {
+    const res = await fetch(`/api/admin/users?id=${id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Pengguna dihapus');
+      loadUsers();
+    } else {
+      showToast(result.error || 'Gagal menghapus', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = type === 'error' ? 'error' : 'check_circle';
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+loadUsers();
+</script>

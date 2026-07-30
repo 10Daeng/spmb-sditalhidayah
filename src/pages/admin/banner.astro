@@ -1,0 +1,22 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Banner" activeMenu="banner">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Kelola Banner</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Atur gambar slider dan banner di landing page</p>
+    </div>
+  </div>
+
+  <div class="card p-12 text-center">
+    <div class="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-4">
+      <span class="material-symbols-outlined text-purple-500" style="font-size:32px;">panorama</span>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-800 mb-2">Modul Banner</h3>
+    <p class="text-gray-500 max-w-md mx-auto mb-4">Fitur ini memungkinkan admin mengelola gambar banner dan slider yang tampil di halaman beranda website.</p>
+    <p class="text-xs text-gray-400">Fitur: Upload banner, atur urutan, aktif/nonaktifkan, preview</p>
+  </div>
+</AdminLayout>

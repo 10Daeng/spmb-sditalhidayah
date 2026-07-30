@@ -1,0 +1,352 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { supabaseAdmin } from '../../lib/supabase.js';
+
+let subjects = [];
+try {
+  const { data } = await supabaseAdmin.from('subjects').select('*').order('category').order('name');
+  if (data) subjects = data;
+} catch (e) { /* table might not exist */ }
+
+const categoryLabels: Record<string, string> = {
+  umum: 'Umum',
+  agama: 'Agama',
+  ekstrakurikuler: 'Ekstrakurikuler',
+  muatan_lokal: 'Muatan Lokal'
+};
+---
+
+<AdminLayout title="Kelola Kelas" activeMenu="kelas">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Kelola Kelas</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Daftar kelas dan mata pelajaran</p>
+    </div>
+    <button class="btn btn-primary text-sm" onclick="document.getElementById('modal-add').classList.remove('hidden')">
+      <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+      Tambah Kelas
+    </button>
+  </div>
+
+  <div class="card mb-6">
+    <div class="flex border-b border-gray-100">
+      <button class="tab-btn active px-5 py-3 text-sm font-medium border-b-2 border-blue-700 text-blue-700" onclick="switchTab(this, 'classrooms')">Kelas</button>
+      <button class="tab-btn px-5 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700" onclick="switchTab(this, 'subjects')">Mata Pelajaran</button>
+    </div>
+  </div>
+
+  <div id="tab-classrooms">
+    <div class="card">
+      <div class="px-5 py-3 border-b border-gray-100 flex flex-col sm:flex-row gap-3">
+        <input type="text" id="search-class" placeholder="Cari kelas..." class="input max-w-xs" oninput="filterClassrooms()" />
+        <select id="filter-level" class="input max-w-xs" onchange="filterClassrooms()">
+          <option value="">Semua Tingkat</option>
+          <option value="1">Kelas 1</option>
+          <option value="2">Kelas 2</option>
+          <option value="3">Kelas 3</option>
+          <option value="4">Kelas 4</option>
+          <option value="5">Kelas 5</option>
+          <option value="6">Kelas 6</option>
+        </select>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nama Kelas</th>
+              <th>Tingkat</th>
+              <th>Wali Kelas</th>
+              <th>Jumlah Siswa</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="classrooms-table">
+            <tr><td colspan="6" class="text-center text-gray-400 py-10">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-subjects" class="hidden">
+    <div class="card">
+      <div class="px-5 py-3 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <input type="text" id="search-subject" placeholder="Cari mata pelajaran..." class="input max-w-xs" oninput="filterSubjects()" />
+        <button class="btn btn-primary text-sm" onclick="openSubjectModal()">
+          <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+          Tambah Mapel
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Kode</th>
+              <th>Kategori</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="subjects-table">
+            {subjects.length === 0 ? (
+              <tr><td colspan="5" class="text-center text-gray-400 py-10">Belum ada data mata pelajaran</td></tr>
+            ) : subjects.map(s => (
+              <tr class="subject-row" data-name={(s.name || '').toLowerCase()} data-category={s.category || 'umum'}>
+                <td><span class="font-medium text-gray-900">{s.name}</span></td>
+                <td><span class="font-mono text-sm text-gray-500">{s.code || '-'}</span></td>
+                <td><span class="badge bg-gray-50 text-gray-700">{categoryLabels[s.category] || s.category}</span></td>
+                <td>{s.status === 'active' ? <span class="badge badge-verified">Aktif</span> : <span class="badge badge-rejected">Nonaktif</span>}</td>
+                <td>
+                  <button class="btn btn-ghost text-xs px-2 py-1" onclick={`toggleSubjectStatus('${s.id}', '${s.status === 'active' ? 'inactive' : 'active'}')`}>
+                    <span class="material-symbols-outlined" style="font-size:16px;">{s.status === 'active' ? 'visibility_off' : 'visibility'}</span>
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-add" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="card p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-semibold text-gray-900">Tambah Kelas Baru</h3>
+        <button onclick="document.getElementById('modal-add').classList.add('hidden')" class="p-1 hover:bg-gray-100 rounded">
+          <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+        </button>
+      </div>
+      <form id="add-class-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Nama Kelas</label>
+          <input type="text" id="class-name" placeholder="Contoh: 1A" class="input" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Tingkat</label>
+          <select id="class-level" class="input" required>
+            <option value="1">Kelas 1</option>
+            <option value="2">Kelas 2</option>
+            <option value="3">Kelas 3</option>
+            <option value="4">Kelas 4</option>
+            <option value="5">Kelas 5</option>
+            <option value="6">Kelas 6</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Kapasitas</label>
+          <input type="number" id="class-capacity" placeholder="30" class="input" />
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-add').classList.add('hidden')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="modal-subject" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="card p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-semibold text-gray-900" id="subject-modal-title">Tambah Mata Pelajaran</h3>
+        <button onclick="document.getElementById('modal-subject').classList.add('hidden')" class="p-1 hover:bg-gray-100 rounded">
+          <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+        </button>
+      </div>
+      <form id="subject-form" class="space-y-4">
+        <input type="hidden" id="subject-id" value="" />
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Nama Mata Pelajaran</label>
+          <input type="text" id="subject-name" placeholder="Matematika" class="input" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Kode</label>
+          <input type="text" id="subject-code" placeholder="MTK" class="input" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Kategori</label>
+          <select id="subject-category" class="input">
+            <option value="umum">Umum</option>
+            <option value="agama">Agama</option>
+            <option value="ekstrakurikuler">Ekstrakurikuler</option>
+            <option value="muatan_lokal">Muatan Lokal</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Deskripsi</label>
+          <input type="text" id="subject-desc" placeholder="Deskripsi opsional..." class="input" />
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" class="btn btn-outline" onclick="document.getElementById('modal-subject').classList.add('hidden')">Batal</button>
+          <button type="submit" class="btn btn-primary" id="subject-submit-btn">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+  let classrooms = [];
+
+  function switchTab(btn, tab) {
+    document.getElementById('tab-classrooms').classList.toggle('hidden', tab !== 'classrooms');
+    document.getElementById('tab-subjects').classList.toggle('hidden', tab !== 'subjects');
+    btn.closest('.flex').querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.remove('active', 'border-blue-700', 'text-blue-700');
+      b.classList.add('text-gray-500', 'border-transparent');
+    });
+    btn.classList.add('active', 'border-blue-700', 'text-blue-700');
+    btn.classList.remove('text-gray-500', 'border-transparent');
+  }
+
+  async function loadClassrooms() {
+    try {
+      const res = await fetch('/api/admin/classrooms');
+      const result = await res.json();
+      classrooms = result.data || [];
+      renderClassrooms(classrooms);
+    } catch (err) {
+      console.error('Failed to load classrooms:', err);
+      renderClassrooms([]);
+    }
+  }
+
+  function renderClassrooms(data) {
+    const tbody = document.getElementById('classrooms-table');
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-10">Belum ada data kelas</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(c => {
+      const level = c.level || '-';
+      const status = c.status === 'active' ? '<span class="badge badge-verified">Aktif</span>' : '<span class="badge badge-rejected">Nonaktif</span>';
+      return `<tr>
+        <td><span class="font-medium text-gray-900">${c.name || '-'}</span></td>
+        <td>Kelas ${level}</td>
+        <td><span class="text-sm text-gray-600">${c.homeroom_teacher || '-'}</span></td>
+        <td><span class="font-medium">${c.student_count || 0}</span><span class="text-gray-400"> / ${c.capacity || '-'}</span></td>
+        <td>${status}</td>
+        <td>
+          <button class="btn btn-ghost text-xs px-2 py-1" onclick="toggleClassroomStatus('${c.id}', '${c.status === 'active' ? 'inactive' : 'active'}')">
+            <span class="material-symbols-outlined" style="font-size:16px;">${c.status === 'active' ? 'visibility_off' : 'visibility'}</span>
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function filterClassrooms() {
+    const search = document.getElementById('search-class')?.value?.toLowerCase() || '';
+    const level = document.getElementById('filter-level')?.value || '';
+    let filtered = classrooms;
+    if (search) filtered = filtered.filter(c => (c.name || '').toLowerCase().includes(search));
+    if (level) filtered = filtered.filter(c => String(c.level) === level);
+    renderClassrooms(filtered);
+  }
+
+  function toggleClassroomStatus(id, newStatus) {
+    fetch('/api/admin/classrooms', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status: newStatus })
+    })
+    .then(r => r.json())
+    .then(result => {
+      if (result.success || result.data) loadClassrooms();
+      else alert('Error: ' + (result.error || 'Unknown error'));
+    })
+    .catch(err => { alert('Error: ' + err.message); });
+  }
+
+  function filterSubjects() {
+    const search = (document.getElementById('search-subject')?.value || '').toLowerCase();
+    const rows = document.querySelectorAll('.subject-row');
+    rows.forEach(row => {
+      const match = !search || row.dataset.name?.includes(search);
+      row.style.display = match ? '' : 'none';
+    });
+  }
+
+  function openSubjectModal() {
+    document.getElementById('subject-id').value = '';
+    document.getElementById('subject-name').value = '';
+    document.getElementById('subject-code').value = '';
+    document.getElementById('subject-category').value = 'umum';
+    document.getElementById('subject-desc').value = '';
+    document.getElementById('subject-modal-title').textContent = 'Tambah Mata Pelajaran';
+    document.getElementById('modal-subject').classList.remove('hidden');
+  }
+
+  document.getElementById('subject-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('subject-submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Menyimpan...';
+
+    const payload = {
+      name: document.getElementById('subject-name').value,
+      code: document.getElementById('subject-code').value || null,
+      category: document.getElementById('subject-category').value,
+      description: document.getElementById('subject-desc').value || null
+    };
+
+    try {
+      const res = await fetch('/api/admin/subjects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert('Mata pelajaran berhasil ditambahkan!');
+        document.getElementById('modal-subject').classList.add('hidden');
+        location.reload();
+      } else {
+        alert('Error: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Simpan';
+    }
+  });
+
+  function toggleSubjectStatus(id, newStatus) {
+    fetch('/api/admin/subjects', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status: newStatus })
+    })
+    .then(r => r.json())
+    .then(result => {
+      if (result.success) location.reload();
+      else alert('Error: ' + (result.error || 'Unknown error'));
+    })
+    .catch(err => { alert('Error: ' + err.message); });
+  }
+
+  document.getElementById('add-class-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('class-name').value;
+    const level = parseInt(document.getElementById('class-level').value);
+    const capacity = parseInt(document.getElementById('class-capacity').value) || null;
+    try {
+      await fetch('/api/admin/classrooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, level, capacity })
+      });
+      document.getElementById('modal-add').classList.add('hidden');
+      loadClassrooms();
+    } catch (err) { alert('Gagal menambah kelas: ' + err.message); }
+  });
+
+  document.getElementById('modal-add')?.addEventListener('click', function(e) { if (e.target === this) this.classList.add('hidden'); });
+  document.getElementById('modal-subject')?.addEventListener('click', function(e) { if (e.target === this) this.classList.add('hidden'); });
+
+  loadClassrooms();
+</script>

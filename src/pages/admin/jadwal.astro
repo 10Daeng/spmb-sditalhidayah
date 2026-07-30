@@ -1,0 +1,269 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { supabaseAdmin } from '../../lib/supabase.js';
+
+let classrooms = [];
+let subjects = [];
+let teachers = [];
+let schedules = [];
+
+try {
+  const [{ data: cData }, { data: sData }, { data: tData }, { data: schData }] = await Promise.all([
+    supabaseAdmin.from('classrooms').select('id, name, level').order('level', { ascending: true }),
+    supabaseAdmin.from('subjects').select('*').order('name', { ascending: true }),
+    supabaseAdmin.from('users').select('id, name, role').eq('role', 'guru').eq('is_active', true).order('name'),
+    supabaseAdmin.from('schedules').select('id, day, start_time, end_time, notes, academic_year, classroom:classrooms(id, name, level), subject:subjects(id, name, code), teacher:users(id, name)').order('day').order('start_time')
+  ]);
+  classrooms = cData || [];
+  subjects = sData || [];
+  teachers = tData || [];
+  schedules = schData || [];
+} catch (e) { /* tables might not exist yet */ }
+
+const dayOrder: Record<string, number> = { senin: 1, selasa: 2, rabu: 3, kamis: 4, jumat: 5, sabtu: 6, ahad: 7 };
+const dayLabels: Record<string, string> = { senin: 'Senin', selasa: 'Selasa', rabu: 'Rabu', kamis: 'Kamis', jumat: 'Jumat', sabtu: 'Sabtu', ahad: 'Ahad' };
+
+const groupedSchedules: Record<string, typeof schedules> = {};
+schedules.forEach(s => {
+  const day = s.day || 'senin';
+  if (!groupedSchedules[day]) groupedSchedules[day] = [];
+  groupedSchedules[day].push(s);
+});
+
+const sortedDays = Object.keys(groupedSchedules).sort((a, b) => (dayOrder[a] || 99) - (dayOrder[b] || 99));
+---
+
+<AdminLayout title="Jadwal Pelajaran" activeMenu="jadwal">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Jadwal Pelajaran</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Kelola jadwal pelajaran per kelas</p>
+    </div>
+    <button class="btn btn-primary text-sm" onclick="openAddModal()">
+      <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+      Tambah Jadwal
+    </button>
+  </div>
+
+  <div class="card mb-6">
+    <div class="px-5 py-3 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+      <div class="flex items-center gap-3 flex-wrap">
+        <select id="filter-classroom" onchange="filterSchedules()" class="input !w-auto !py-2 !px-3 text-sm">
+          <option value="all">Semua Kelas</option>
+          {classrooms.map(c => (
+            <option value={c.id}>Kelas {c.level} - {c.name}</option>
+          ))}
+        </select>
+      </div>
+      <p class="text-xs text-gray-400" id="count-label">{schedules.length} jadwal</p>
+    </div>
+  </div>
+
+  {sortedDays.length === 0 ? (
+    <div class="card p-12 text-center">
+      <div class="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-4">
+        <span class="material-symbols-outlined text-indigo-500" style="font-size:32px;">calendar_month</span>
+      </div>
+      <h3 class="text-lg font-semibold text-gray-800 mb-2">Belum ada jadwal</h3>
+      <p class="text-gray-500 max-w-md mx-auto">Klik "Tambah Jadwal" untuk membuat jadwal pelajaran baru.</p>
+    </div>
+  ) : sortedDays.map(day => (
+    <div class="mb-6 schedule-day-section" data-day={day}>
+      <h3 class="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
+        <span class="material-symbols-outlined text-indigo-500" style="font-size:20px;">calendar_today</span>
+        {dayLabels[day] || day}
+      </h3>
+      <div class="card overflow-hidden">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>Mata Pelajaran</th>
+              <th>Kelas</th>
+              <th>Guru</th>
+              <th>Catatan</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(groupedSchedules[day] || []).map(s => (
+              <tr class="schedule-row" data-classroom={s.classroom?.id || ''}>
+                <td>
+                  <span class="font-mono text-sm text-gray-700">{s.start_time?.substring(0, 5) || '-'} - {s.end_time?.substring(0, 5) || '-'}</span>
+                </td>
+                <td><span class="font-medium text-gray-900">{s.subject?.name || '-'}</span></td>
+                <td><span class="text-sm text-gray-600">Kelas {s.classroom?.level || '-'} {s.classroom?.name || ''}</span></td>
+                <td><span class="text-sm text-gray-600">{s.teacher?.name || '-'}</span></td>
+                <td><span class="text-sm text-gray-500">{s.notes || '-'}</span></td>
+                <td>
+                  <div class="flex gap-1">
+                    <button class="btn btn-ghost text-xs px-2 py-1" onclick={`deleteSchedule('${s.id}')`}>
+                      <span class="material-symbols-outlined" style="font-size:16px;">delete</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  ))}
+
+  <div id="modal-add" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="card p-6 w-full max-w-lg mx-4">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-semibold text-gray-900">Tambah Jadwal Baru</h3>
+        <button onclick="closeModal()" class="p-1 hover:bg-gray-100 rounded">
+          <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+        </button>
+      </div>
+      <form id="schedule-form" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Kelas</label>
+            <select id="sch-classroom" class="input" required>
+              <option value="">Pilih Kelas</option>
+              {classrooms.map(c => (
+                <option value={c.id}>Kelas {c.level} - {c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Hari</label>
+            <select id="sch-day" class="input" required>
+              <option value="senin">Senin</option>
+              <option value="selasa">Selasa</option>
+              <option value="rabu">Rabu</option>
+              <option value="kamis">Kamis</option>
+              <option value="jumat">Jumat</option>
+              <option value="sabtu">Sabtu</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Jam Mulai</label>
+            <input type="time" id="sch-start" class="input" required />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Jam Selesai</label>
+            <input type="time" id="sch-end" class="input" required />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Mata Pelajaran</label>
+          <select id="sch-subject" class="input" required>
+            <option value="">Pilih Mata Pelajaran</option>
+            {subjects.map(s => (
+              <option value={s.id}>{s.name} {s.code ? `(${s.code})` : ''}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Guru</label>
+          <select id="sch-teacher" class="input">
+            <option value="">Pilih Guru (opsional)</option>
+            {teachers.map(t => (
+              <option value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Catatan</label>
+          <input type="text" id="sch-notes" placeholder="Catatan opsional..." class="input" />
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" class="btn btn-outline" onclick="closeModal()">Batal</button>
+          <button type="submit" class="btn btn-primary" id="submit-btn">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+  function openAddModal() {
+    document.getElementById('schedule-form').reset();
+    document.getElementById('modal-add').classList.remove('hidden');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-add').classList.add('hidden');
+  }
+
+  function filterSchedules() {
+    const classroomId = document.getElementById('filter-classroom')?.value;
+    const rows = document.querySelectorAll('.schedule-row');
+    const daySections = document.querySelectorAll('.schedule-day-section');
+    let count = 0;
+
+    rows.forEach(row => {
+      const visible = classroomId === 'all' || row.dataset.classroom === classroomId;
+      row.style.display = visible ? '' : 'none';
+      if (visible) count++;
+    });
+
+    daySections.forEach(section => {
+      const visibleRows = section.querySelectorAll('.schedule-row:not([style*="display: none"])');
+      section.style.display = visibleRows.length > 0 ? '' : 'none';
+    });
+
+    const label = document.getElementById('count-label');
+    if (label) label.textContent = count + ' jadwal';
+  }
+
+  document.getElementById('schedule-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Menyimpan...';
+
+    const payload = {
+      classroom_id: document.getElementById('sch-classroom').value,
+      subject_id: document.getElementById('sch-subject').value,
+      teacher_id: document.getElementById('sch-teacher').value || null,
+      day: document.getElementById('sch-day').value,
+      start_time: document.getElementById('sch-start').value,
+      end_time: document.getElementById('sch-end').value,
+      notes: document.getElementById('sch-notes').value || null
+    };
+
+    try {
+      const res = await fetch('/api/admin/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      if (result.success) {
+        alert('Jadwal berhasil ditambahkan!');
+        closeModal();
+        location.reload();
+      } else {
+        alert('Error: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Simpan';
+    }
+  });
+
+  function deleteSchedule(id) {
+    if (!confirm('Yakin ingin menghapus jadwal ini?')) return;
+    fetch(`/api/admin/schedules?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+      .then(r => r.json())
+      .then(result => {
+        if (result.success) location.reload();
+        else alert('Error: ' + (result.error || 'Unknown error'));
+      })
+      .catch(err => { alert('Error: ' + err.message); });
+  }
+
+  document.getElementById('modal-add')?.addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>

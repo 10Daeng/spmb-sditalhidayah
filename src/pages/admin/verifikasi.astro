@@ -1,0 +1,953 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Verifikasi Indent" activeMenu="verifikasi">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Verifikasi Indent</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Kelola dan verifikasi data pendaftar SPMB</p>
+    </div>
+    <button id="btnRefresh" class="btn bg-gray-100 text-gray-700 hover:bg-gray-200">
+      <span class="material-symbols-outlined">refresh</span>
+      Refresh
+    </button>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-blue-500" style="font-size:20px;">groups</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Total Pendaftar</p>
+          <p class="text-lg font-bold text-gray-900" id="statTotal">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-amber-500" style="font-size:20px;">hourglass_top</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Menunggu</p>
+          <p class="text-lg font-bold text-gray-900" id="statPending">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-emerald-500" style="font-size:20px;">check_circle</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Terverifikasi</p>
+          <p class="text-lg font-bold text-gray-900" id="statVerified">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-rose-500" style="font-size:20px;">cancel</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Ditolak</p>
+          <p class="text-lg font-bold text-gray-900" id="statRejected">0</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card p-4 mb-4">
+    <div class="flex flex-col sm:flex-row gap-3 items-end">
+      <div class="flex-1 min-w-[200px]">
+        <label class="block text-xs font-medium text-gray-500 mb-1">Cari Pendaftar</label>
+        <input type="text" id="searchInput" class="input w-full" placeholder="Nama, nomor pendaftaran, no. HP...">
+      </div>
+      <div class="min-w-[160px]">
+        <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+        <select id="statusFilter" class="input w-full">
+          <option value="all">Semua Status</option>
+          <option value="pending">Menunggu</option>
+          <option value="verified">Terverifikasi</option>
+          <option value="document_complete">Dokumen Lengkap</option>
+          <option value="calon_peserta">Calon Peserta</option>
+          <option value="assessment">Assessment</option>
+          <option value="interview">Wawancara</option>
+          <option value="rejected">Ditolak</option>
+          <option value="scheduled">Dijadwalkan</option>
+          <option value="lulus">Lulus</option>
+          <option value="cadangan">Cadangan</option>
+          <option value="tidak_lulus">Tidak Lulus</option>
+        </select>
+      </div>
+      <div class="min-w-[160px]">
+        <label class="block text-xs font-medium text-gray-500 mb-1">Urutkan</label>
+        <select id="sortFilter" class="input w-full">
+          <option value="created_at:desc">Terbaru</option>
+          <option value="created_at:asc">Terlama</option>
+          <option value="student_full_name:asc">Nama A-Z</option>
+        </select>
+      </div>
+      <button id="btnFilter" class="btn btn-primary">
+        <span class="material-symbols-outlined" style="font-size:18px;">filter_list</span>
+        Filter
+      </button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="data-table min-w-[1100px]">
+        <thead>
+          <tr>
+            <th class="w-10"><input type="checkbox" id="selectAll"></th>
+            <th>No. Pendaftaran</th>
+            <th>Nama Siswa</th>
+            <th>Status</th>
+            <th>Dokumen</th>
+            <th>Pembayaran</th>
+            <th>No. HP Ortu</th>
+            <th>Tanggal Daftar</th>
+            <th class="w-24">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="registrationsBody">
+          <tr><td colspan="9" class="text-center py-12 text-gray-400">Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t border-gray-100 gap-3" id="pagination">
+      <p class="text-xs text-gray-500" id="pageInfo">Menampilkan 0 - 0 dari 0</p>
+      <div class="flex items-center gap-2" id="pageControls"></div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detailModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-lg max-w-4xl w-full max-h-[92vh] overflow-hidden flex flex-col">
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-gray-100 flex justify-between items-start shrink-0">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="font-mono text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded" id="modalRegNo">-</span>
+            <span id="modalStatus" class="badge">-</span>
+          </div>
+          <h3 class="text-lg font-bold text-gray-900" id="modalStudentName">-</h3>
+          <p class="text-sm text-gray-500" id="modalParentInfo">-</p>
+        </div>
+        <button onclick="closeDetailModal()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-gray-500">close</span>
+        </button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="border-b border-gray-100 px-5 shrink-0">
+        <div class="flex gap-1 -mb-px" id="detailTabs">
+          <button onclick="switchTab('data')" data-tab="data" class="detail-tab active px-4 py-3 text-sm font-medium border-b-2 border-blue-600 text-blue-600">Data Pendaftar</button>
+          <button onclick="switchTab('dokumen')" data-tab="dokumen" class="detail-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Dokumen</button>
+          <button onclick="switchTab('pembayaran')" data-tab="pembayaran" class="detail-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Pembayaran</button>
+          <button onclick="switchTab('riwayat')" data-tab="riwayat" class="detail-tab px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Riwayat</button>
+        </div>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="flex-1 overflow-y-auto p-5" id="modalContent">
+        <!-- Content injected via JS -->
+      </div>
+
+      <!-- Modal Footer Actions -->
+      <div class="p-4 border-t border-gray-100 flex flex-wrap gap-2 justify-end shrink-0 bg-gray-50" id="modalActions">
+        <!-- Actions injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedule Test Modal -->
+  <div id="scheduleModal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-lg max-w-md w-full">
+      <div class="p-5 border-b border-gray-100">
+        <h3 class="text-lg font-semibold">Jadwalkan Tes</h3>
+        <p class="text-sm text-gray-500" id="scheduleStudentName">-</p>
+      </div>
+      <div class="p-5 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Tes</label>
+          <input type="date" id="schDate" class="input w-full">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Waktu</label>
+          <input type="time" id="schTime" class="input w-full">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Lokasi</label>
+          <input type="text" id="schLocation" class="input w-full" placeholder="Ruang Kelas A / Online">
+        </div>
+      </div>
+      <div class="p-5 border-t border-gray-100 flex justify-end gap-2">
+        <button onclick="closeScheduleModal()" class="btn bg-gray-100 text-gray-700 hover:bg-gray-200">Batal</button>
+        <button onclick="submitSchedule()" class="btn btn-primary">Simpan Jadwal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result Modal -->
+  <div id="resultModal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-lg max-w-md w-full">
+      <div class="p-5 border-b border-gray-100">
+        <h3 class="text-lg font-semibold">Umumkan Hasil Seleksi</h3>
+        <p class="text-sm text-gray-500" id="resultStudentName">-</p>
+      </div>
+      <div class="p-5 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Hasil Seleksi</label>
+          <select id="resultPassed" class="input w-full">
+            <option value="true">LULUS</option>
+            <option value="false">TIDAK LULUS</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nilai Tes (opsional)</label>
+          <input type="number" id="resultScore" class="input w-full" placeholder="0-100" min="0" max="100" step="0.01">
+        </div>
+      </div>
+      <div class="p-5 border-t border-gray-100 flex justify-end gap-2">
+        <button onclick="closeResultModal()" class="btn bg-gray-100 text-gray-700 hover:bg-gray-200">Batal</button>
+        <button onclick="submitResult()" class="btn btn-primary">Umumkan Hasil</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reject Reason Modal -->
+  <div id="rejectModal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-lg max-w-md w-full">
+      <div class="p-5 border-b border-gray-100">
+        <h3 class="text-lg font-semibold">Tolak Indent</h3>
+        <p class="text-sm text-gray-500" id="rejectStudentName">-</p>
+      </div>
+      <div class="p-5">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Alasan Penolakan <span class="text-red-500">*</span></label>
+        <textarea id="rejectReason" class="input w-full" rows="3" placeholder="Contoh: Dokumen tidak lengkap, data tidak valid..."></textarea>
+      </div>
+      <div class="p-5 border-t border-gray-100 flex justify-end gap-2">
+        <button onclick="closeRejectModal()" class="btn bg-gray-100 text-gray-700 hover:bg-gray-200">Batal</button>
+        <button onclick="submitReject()" class="btn bg-rose-600 text-white hover:bg-rose-700">Tolak Indent</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 right-6 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-lg z-[70] flex items-center gap-2">
+    <span id="toastIcon" class="material-symbols-outlined">check_circle</span>
+    <span id="toastMsg"></span>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+let allData = [];
+let filteredData = [];
+let currentDetailId = null;
+let detailData = null;
+let currentPage = 1;
+const itemsPerPage = 25;
+
+const statusConfig = {
+  pending:    { text: 'Menunggu',     class: 'bg-amber-50 text-amber-600',  icon: 'hourglass_top' },
+  verified:   { text: 'Terverifikasi', class: 'bg-emerald-50 text-emerald-600', icon: 'check_circle' },
+  document_complete: { text: 'Dokumen Lengkap', class: 'bg-cyan-50 text-cyan-600', icon: 'description' },
+  calon_peserta: { text: 'Calon Peserta', class: 'bg-blue-50 text-blue-600', icon: 'how_to_reg' },
+  assessment: { text: 'Assessment Selesai', class: 'bg-indigo-50 text-indigo-600', icon: 'psychology' },
+  interview:  { text: 'Wawancara Selesai', class: 'bg-violet-50 text-violet-600', icon: 'record_voice_over' },
+  rejected:   { text: 'Ditolak',      class: 'bg-rose-50 text-rose-600',    icon: 'cancel' },
+  scheduled:  { text: 'Dijadwalkan',  class: 'bg-blue-50 text-blue-600',    icon: 'event' },
+  lulus:      { text: 'Lulus',        class: 'bg-emerald-50 text-emerald-700', icon: 'school' },
+  cadangan:   { text: 'Cadangan',     class: 'bg-amber-50 text-amber-700', icon: 'warning' },
+  'tidak_lulus': { text: 'Tidak Lulus', class: 'bg-gray-50 text-gray-600', icon: 'block' },
+  enrolled:   { text: 'Daftar Ulang', class: 'bg-purple-50 text-purple-600', icon: 'how_to_reg' }
+};
+
+const docLabels = {
+  kk: 'Kartu Keluarga',
+  akte: 'Akte Kelahiran',
+  foto: 'Foto 3x4',
+  ijazah: 'Ijazah TK',
+  ktp_ayah: 'KTP Ayah',
+  ktp_ibu: 'KTP Ibu'
+};
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    return new Date(dateStr).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch { return dateStr; }
+}
+
+function formatDateTime(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    return new Date(dateStr).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch { return dateStr; }
+}
+
+function formatRupiah(num) {
+  return 'Rp ' + (num || 0).toLocaleString('id-ID');
+}
+
+async function loadRegistrations() {
+  const tbody = document.getElementById('registrationsBody');
+  tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-400">Memuat data...</td></tr>';
+
+  try {
+    const res = await fetch('/api/admin/registrations?limit=1000', { credentials: 'include' });
+    const result = await res.json();
+
+    if (result.success) {
+      allData = result.data || [];
+      applyFilters();
+      updateStats();
+    } else {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-400">Gagal memuat data</td></tr>';
+    }
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-400">Terjadi kesalahan</td></tr>';
+  }
+}
+
+function updateStats() {
+  const total = allData.length;
+  const pending = allData.filter(r => r.status === 'pending').length;
+  const verified = allData.filter(r => r.status === 'verified').length;
+  const rejected = allData.filter(r => r.status === 'rejected').length;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statVerified').textContent = verified;
+  document.getElementById('statRejected').textContent = rejected;
+}
+
+function applyFilters() {
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const status = document.getElementById('statusFilter').value;
+  const sortVal = document.getElementById('sortFilter').value;
+
+  filteredData = allData.filter(r => {
+    const matchStatus = status === 'all' || r.status === status;
+    const matchSearch = !search ||
+      (r.student_full_name || '').toLowerCase().includes(search) ||
+      (r.registration_number || '').toLowerCase().includes(search) ||
+      (r.parent_phone || '').includes(search) ||
+      (r.parent_name || '').toLowerCase().includes(search);
+    return matchStatus && matchSearch;
+  });
+
+  // Sort
+  const [sortKey, sortDir] = sortVal.split(':');
+  filteredData.sort((a, b) => {
+    let va = a[sortKey] || '';
+    let vb = b[sortKey] || '';
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  currentPage = 1;
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('registrationsBody');
+  const total = filteredData.length;
+  const start = (currentPage - 1) * itemsPerPage;
+  const end = Math.min(start + itemsPerPage, total);
+  const pageData = filteredData.slice(start, end);
+
+  document.getElementById('pageInfo').textContent = `Menampilkan ${start + 1}-${end} dari ${total}`;
+
+  // Pagination controls
+  const totalPages = Math.ceil(total / itemsPerPage) || 1;
+  let pgHtml = '';
+  if (currentPage > 1) pgHtml += `<button onclick="goPage(${currentPage - 1})" class="px-3 py-1.5 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">Prev</button>`;
+  pgHtml += `<span class="px-3 py-1.5 text-sm text-gray-600">${currentPage} / ${totalPages}</span>`;
+  if (currentPage < totalPages) pgHtml += `<button onclick="goPage(${currentPage + 1})" class="px-3 py-1.5 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">Next</button>`;
+  document.getElementById('pageControls').innerHTML = pgHtml;
+
+  if (!pageData.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-400">Tidak ada data</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = pageData.map(r => {
+    const st = statusConfig[r.status] || statusConfig.pending;
+    const hasDocs = r.documents_submitted_at ? '<span class="badge bg-emerald-50 text-emerald-600 text-xs">Ada</span>' : '<span class="badge bg-gray-50 text-gray-500 text-xs">-</span>';
+    return `<tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="openDetailModal('${r.id}')">
+      <td onclick="event.stopPropagation()"><input type="checkbox" class="row-check" data-id="${r.id}"></td>
+      <td class="font-mono text-xs font-bold text-blue-600">#${r.registration_number || '-'}</td>
+      <td>
+        <div class="font-medium text-sm text-gray-900">${r.student_full_name || '-'}</div>
+        <div class="text-xs text-gray-400">${r.gender === 'L' ? 'Laki-laki' : r.gender === 'P' ? 'Perempuan' : '-'}</div>
+      </td>
+      <td><span class="badge ${st.class} text-xs flex items-center gap-1 w-fit"><span class="material-symbols-outlined" style="font-size:14px;">${st.icon}</span>${st.text}</span></td>
+      <td>${hasDocs}</td>
+      <td id="pay-${r.id}"><span class="text-xs text-gray-400">-</span></td>
+      <td class="text-xs text-gray-500">${r.parent_phone || '-'}</td>
+      <td class="text-xs text-gray-500">${formatDate(r.created_at)}</td>
+      <td>
+        <div class="flex gap-1" onclick="event.stopPropagation()">
+          <button onclick="openDetailModal('${r.id}')" class="w-8 h-8 rounded-lg hover:bg-blue-50 text-blue-600 flex items-center justify-center" title="Detail"><span class="material-symbols-outlined" style="font-size:18px;">visibility</span></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Load payment statuses in background
+  pageData.forEach(r => loadPaymentStatus(r.id));
+}
+
+async function loadPaymentStatus(regId) {
+  try {
+    const res = await fetch(`/api/admin/payments?registration_id=${regId}&limit=10`, { credentials: 'include' });
+    const result = await res.json();
+    const el = document.getElementById(`pay-${regId}`);
+    if (!el) return;
+    if (result.success && result.data && result.data.length) {
+      const hasPending = result.data.some(p => p.status === 'pending' || p.status === 'partial');
+      const allPaid = result.data.every(p => p.status === 'paid');
+      if (allPaid) el.innerHTML = '<span class="badge bg-emerald-50 text-emerald-600 text-xs">Lunas</span>';
+      else if (hasPending) el.innerHTML = '<span class="badge bg-amber-50 text-amber-600 text-xs">Belum Lunas</span>';
+      else el.innerHTML = '<span class="badge bg-gray-50 text-gray-500 text-xs">-</span>';
+    } else {
+      el.innerHTML = '<span class="text-xs text-gray-400">Belum ada</span>';
+    }
+  } catch (e) {}
+}
+
+function goPage(p) {
+  currentPage = p;
+  renderTable();
+}
+
+// ========================
+// DETAIL MODAL
+// ========================
+async function openDetailModal(id) {
+  currentDetailId = id;
+  const reg = allData.find(r => r.id === id);
+  if (!reg) return;
+
+  document.getElementById('modalRegNo').textContent = '#' + (reg.registration_number || '-');
+  document.getElementById('modalStudentName').textContent = reg.student_full_name || '-';
+  document.getElementById('modalParentInfo').textContent = (reg.parent_name || '-') + ' • ' + (reg.parent_phone || '-');
+
+  const st = statusConfig[reg.status] || statusConfig.pending;
+  document.getElementById('modalStatus').className = 'badge ' + st.class;
+  document.getElementById('modalStatus').innerHTML = `<span class="material-symbols-outlined" style="font-size:14px;">${st.icon}</span> ${st.text}`;
+
+  document.getElementById('detailModal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  // Load detail data
+  document.getElementById('modalContent').innerHTML = '<div class="flex items-center justify-center py-12"><div class="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"></div></div>';
+
+  try {
+    const res = await fetch(`/api/admin/verification-detail?id=${id}`, { credentials: 'include' });
+    console.log('[VERIFIKASI] Detail response status:', res.status);
+    const result = await res.json();
+    console.log('[VERIFIKASI] Detail result:', result);
+    if (!result.success) {
+      console.error('[VERIFIKASI] Detail error:', result.error);
+    }
+    detailData = result.success ? result.data : null;
+  } catch (e) {
+    console.error('[VERIFIKASI] Detail fetch error:', e);
+    detailData = null;
+  }
+
+  switchTab('data');
+  renderActions(reg);
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModal').classList.add('hidden');
+  document.body.style.overflow = '';
+  currentDetailId = null;
+  detailData = null;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.detail-tab').forEach(t => {
+    t.classList.remove('active', 'border-blue-600', 'text-blue-600');
+    t.classList.add('border-transparent', 'text-gray-500');
+  });
+  const activeBtn = document.querySelector(`.detail-tab[data-tab="${tab}"]`);
+  if (activeBtn) {
+    activeBtn.classList.add('active', 'border-blue-600', 'text-blue-600');
+    activeBtn.classList.remove('border-transparent', 'text-gray-500');
+  }
+
+  const content = document.getElementById('modalContent');
+  if (!detailData) {
+    content.innerHTML = '<div class="text-center py-8 text-gray-400">Data tidak tersedia</div>';
+    return;
+  }
+
+  const reg = detailData.registration;
+  const student = detailData.student;
+  const payments = detailData.payments || [];
+  const logs = detailData.logs || [];
+  const summary = detailData.summary || {};
+
+  if (tab === 'data') {
+    content.innerHTML = renderTabData(reg, student);
+  } else if (tab === 'dokumen') {
+    content.innerHTML = renderTabDokumen(reg, student, summary.document_completeness);
+  } else if (tab === 'pembayaran') {
+    content.innerHTML = renderTabPembayaran(payments, summary.payment_summary);
+  } else if (tab === 'riwayat') {
+    content.innerHTML = renderTabRiwayat(logs);
+  }
+}
+
+function renderTabData(reg, student) {
+  const s = student || {};
+  const guardians = s.student_guardians || [];
+  const bg = (s.student_backgrounds && s.student_backgrounds[0]) || {};
+
+  const ayah = guardians.find(g => g.relation_type === 'AYAH') || {};
+  const ibu = guardians.find(g => g.relation_type === 'IBU') || {};
+
+  return `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="space-y-4">
+        <h4 class="font-semibold text-sm text-gray-900 flex items-center gap-2">
+          <span class="material-symbols-outlined text-blue-500" style="font-size:18px;">person</span>
+          Data Siswa
+        </h4>
+        <div class="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
+          <div class="flex justify-between"><span class="text-gray-500">Nama Lengkap</span><span class="font-medium">${s.full_name || reg.student_full_name || '-'}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Nama Panggilan</span><span>${s.nickname || '-'}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">NIK</span><span class="font-mono">${s.nik || '-'}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">NISN</span><span class="font-mono">${s.nisn || '-'}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Tempat, Tgl Lahir</span><span>${s.place_of_birth || '-'}, ${formatDate(s.date_of_birth || reg.date_of_birth)}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Jenis Kelamin</span><span>${s.gender === 'L' ? 'Laki-laki' : s.gender === 'P' ? 'Perempuan' : '-'}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Kewarganegaraan</span><span>${s.nationality || 'WNI'}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Anak ke-</span><span>${s.child_order || '-'}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Jumlah Saudara</span><span>${s.siblings_count || '-'}</span></div>
+        </div>
+
+        <h4 class="font-semibold text-sm text-gray-900 flex items-center gap-2 pt-2">
+          <span class="material-symbols-outlined text-blue-500" style="font-size:18px;">home</span>
+          Alamat
+        </h4>
+        <div class="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
+          <div class="flex justify-between"><span class="text-gray-500">Alamat KK</span><span>${s.address_kk || '-'}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Alamat Domisili</span><span>${s.address_domicile || '-'}</span></div>
+        </div>
+
+        <h4 class="font-semibold text-sm text-gray-900 flex items-center gap-2 pt-2">
+          <span class="material-symbols-outlined text-blue-500" style="font-size:18px;">school</span>
+          Riwayat Pendidikan
+        </h4>
+        <div class="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
+          <div class="flex justify-between"><span class="text-gray-500">Asal Sekolah</span><span>${bg.school_experience || '-'}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Nama Sekolah</span><span>${bg.origin_school_name || '-'}</span></div>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <h4 class="font-semibold text-sm text-gray-900 flex items-center gap-2">
+          <span class="material-symbols-outlined text-blue-500" style="font-size:18px;">family_restroom</span>
+          Data Orang Tua
+        </h4>
+        <div class="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
+          <div class="border-b border-gray-200 pb-2">
+            <p class="font-medium text-gray-700 mb-1">Ayah</p>
+            <div class="flex justify-between"><span class="text-gray-500">Nama</span><span>${ayah.full_name || reg.parent_name || '-'}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">NIK</span><span class="font-mono">${ayah.nik || '-'}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Tempat, Tgl Lahir</span><span>${ayah.place_of_birth || '-'}, ${formatDate(ayah.date_of_birth)}</span></div>
+          </div>
+          <div>
+            <p class="font-medium text-gray-700 mb-1">Ibu</p>
+            <div class="flex justify-between"><span class="text-gray-500">Nama</span><span>${ibu.full_name || '-'}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">NIK</span><span class="font-mono">${ibu.nik || '-'}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">Tempat, Tgl Lahir</span><span>${ibu.place_of_birth || '-'}, ${formatDate(ibu.date_of_birth)}</span></div>
+          </div>
+        </div>
+
+        <h4 class="font-semibold text-sm text-gray-900 flex items-center gap-2 pt-2">
+          <span class="material-symbols-outlined text-blue-500" style="font-size:18px;">contact_phone</span>
+          Kontak & Darurat
+        </h4>
+        <div class="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
+          <div class="flex justify-between"><span class="text-gray-500">HP Ortu</span><span>${reg.parent_phone || '-'}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Email Ortu</span><span>${reg.parent_email || '-'}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Kontak Darurat</span><span>${s.emergency_contact_name || '-'} (${s.emergency_contact_phone || '-'})</span></div>
+        </div>
+
+        ${bg.height_cm ? `
+        <h4 class="font-semibold text-sm text-gray-900 flex items-center gap-2 pt-2">
+          <span class="material-symbols-outlined text-blue-500" style="font-size:18px;">monitor_heart</span>
+          Kesehatan & Fisik
+        </h4>
+        <div class="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
+          <div class="flex justify-between"><span class="text-gray-500">Tinggi</span><span>${bg.height_cm} cm</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Berat</span><span>${bg.weight_kg} kg</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Gol. Darah</span><span>${bg.blood_type || '-'} ${bg.rhesus || ''}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Alergi</span><span>${bg.allergies || '-'}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">Riwayat Penyakit</span><span>${bg.disease_history || '-'}</span></div>
+        </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderTabDokumen(reg, student, docSummary) {
+  const docUrls = student?.document_urls || {};
+  const docs = docSummary || { uploaded: 0, required: 4, complete: false, missing: [] };
+
+  let docList = '';
+  Object.entries(docLabels).forEach(([key, label]) => {
+    const url = docUrls[key];
+    const hasUrl = url && String(url).startsWith('http');
+    docList += `
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined ${hasUrl ? 'text-emerald-500' : 'text-gray-300'}" style="font-size:20px;">${hasUrl ? 'check_circle' : 'radio_button_unchecked'}</span>
+          <div>
+            <p class="text-sm font-medium text-gray-700">${label}</p>
+            <p class="text-xs text-gray-400">${hasUrl ? 'Sudah diunggah' : 'Belum diunggah'}</p>
+          </div>
+        </div>
+        ${hasUrl ? `<a href="${url}" target="_blank" class="btn bg-blue-50 text-blue-600 hover:bg-blue-100 text-xs py-1.5 px-3"><span class="material-symbols-outlined" style="font-size:16px;">visibility</span> Lihat</a>` : '<span class="text-xs text-gray-400 px-3">-</span>'}
+      </div>
+    `;
+  });
+
+  return `
+    <div class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h4 class="font-semibold text-sm text-gray-900">Kelengkapan Dokumen</h4>
+        <span class="badge ${docs.complete ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}">${docs.uploaded}/${docs.required} Dokumen</span>
+      </div>
+      <div class="space-y-2">${docList}</div>
+
+      <div class="border-t border-gray-100 pt-4 mt-4">
+        <h4 class="font-semibold text-sm text-gray-900 mb-3">Pernyataan</h4>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="p-3 bg-gray-50 rounded-lg text-sm">
+            <p class="text-gray-500 text-xs mb-1">Data Benar</p>
+            <p class="font-medium ${reg.statement_data_correct ? 'text-emerald-600' : 'text-gray-400'}">${reg.statement_data_correct ? 'Sudah menyetujui' : 'Belum'}</p>
+          </div>
+          <div class="p-3 bg-gray-50 rounded-lg text-sm">
+            <p class="text-gray-500 text-xs mb-1">Patuh Aturan</p>
+            <p class="font-medium ${reg.statement_follow_rules ? 'text-emerald-600' : 'text-gray-400'}">${reg.statement_follow_rules ? 'Sudah menyetujui' : 'Belum'}</p>
+          </div>
+          <div class="p-3 bg-gray-50 rounded-lg text-sm">
+            <p class="text-gray-500 text-xs mb-1">Kemampuan Keuangan</p>
+            <p class="font-medium ${reg.statement_financial ? 'text-emerald-600' : 'text-gray-400'}">${reg.statement_financial ? 'Sudah menyetujui' : 'Belum'}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderTabPembayaran(payments, paySummary) {
+  const ps = paySummary || { total_due: 0, total_paid: 0, remaining: 0, status: 'belum_bayar' };
+  const st = ps.status === 'lunas' ? { text: 'Lunas', class: 'bg-emerald-50 text-emerald-600' } :
+             ps.status === 'partial' ? { text: 'Kurang Bayar', class: 'bg-amber-50 text-amber-600' } :
+             { text: 'Belum Bayar', class: 'bg-gray-50 text-gray-500' };
+
+  let rows = '';
+  if (!payments.length) {
+    rows = '<tr><td colspan="6" class="text-center py-6 text-gray-400 text-sm">Belum ada tagihan</td></tr>';
+  } else {
+    rows = payments.map(p => {
+      const pst = statusConfig[p.status] || { text: p.status, class: 'bg-gray-50 text-gray-600' };
+      return `<tr class="border-b border-gray-50">
+        <td class="py-2 text-sm">${p.payment_type === 'pendaftaran' ? 'Indent' : p.payment_type === 'daftar_ulang' ? 'Daftar Ulang' : p.payment_type === 'spp' ? 'SPP' : p.payment_type}</td>
+        <td class="py-2 text-sm font-medium">${formatRupiah(p.amount)}</td>
+        <td class="py-2 text-sm">${formatRupiah(p.paid_amount)}</td>
+        <td class="py-2 text-sm">${formatRupiah(Math.max(0, p.amount - p.paid_amount))}</td>
+        <td class="py-2"><span class="badge ${pst.class} text-xs">${pst.text}</span></td>
+        <td class="py-2 text-xs text-gray-500">${formatDate(p.created_at)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  return `
+    <div class="space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="card p-4 bg-blue-50 border-blue-100">
+          <p class="text-xs text-blue-500 mb-1">Total Tagihan</p>
+          <p class="text-lg font-bold text-blue-700">${formatRupiah(ps.total_due)}</p>
+        </div>
+        <div class="card p-4 bg-emerald-50 border-emerald-100">
+          <p class="text-xs text-emerald-500 mb-1">Total Dibayar</p>
+          <p class="text-lg font-bold text-emerald-700">${formatRupiah(ps.total_paid)}</p>
+        </div>
+        <div class="card p-4 ${ps.remaining > 0 ? 'bg-rose-50 border-rose-100' : 'bg-gray-50 border-gray-100'}">
+          <p class="text-xs ${ps.remaining > 0 ? 'text-rose-500' : 'text-gray-500'} mb-1">Sisa</p>
+          <p class="text-lg font-bold ${ps.remaining > 0 ? 'text-rose-700' : 'text-gray-700'}">${formatRupiah(ps.remaining)}</p>
+        </div>
+      </div>
+      <div class="flex items-center justify-between">
+        <h4 class="font-semibold text-sm text-gray-900">Riwayat Pembayaran</h4>
+        <span class="badge ${st.class} text-xs">${st.text}</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table w-full">
+          <thead>
+            <tr><th>Jenis</th><th>Nominal</th><th>Dibayar</th><th>Kurang</th><th>Status</th><th>Tanggal</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderTabRiwayat(logs) {
+  if (!logs.length) {
+    return '<div class="text-center py-8 text-gray-400 text-sm">Belum ada riwayat aktivitas</div>';
+  }
+
+  const actionLabels = {
+    'VERIFY_REGISTRATION_APPROVED': { text: 'Indent Disetujui', icon: 'check_circle', color: 'text-emerald-600' },
+    'VERIFY_REGISTRATION_REJECTED': { text: 'Indent Ditolak', icon: 'cancel', color: 'text-rose-600' },
+    'UPDATE_REGISTRATION': { text: 'Data Diperbarui', icon: 'edit', color: 'text-blue-600' },
+    'SCHEDULE_TEST': { text: 'Jadwal Tes Diatur', icon: 'event', color: 'text-blue-600' },
+    'ANNOUNCE_RESULT': { text: 'Hasil Diumumkan', icon: 'campaign', color: 'text-purple-600' }
+  };
+
+  const rows = logs.map(l => {
+    const act = actionLabels[l.action] || { text: l.action, icon: 'info', color: 'text-gray-600' };
+    return `<div class="flex gap-3 pb-4 border-b border-gray-50 last:border-0">
+      <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined ${act.color}" style="font-size:18px;">${act.icon}</span>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-gray-900">${act.text}</p>
+        <p class="text-xs text-gray-500">${formatDateTime(l.created_at)}</p>
+        ${l.details ? `<p class="text-xs text-gray-400 mt-1">${JSON.stringify(l.details).slice(0, 120)}</p>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="space-y-4">${rows}</div>`;
+}
+
+function renderActions(reg) {
+  const actions = document.getElementById('modalActions');
+  let html = '';
+
+  if (reg.status === 'pending') {
+    html += `<button onclick="openRejectModal('${reg.id}')" class="btn bg-rose-50 text-rose-600 hover:bg-rose-100"><span class="material-symbols-outlined">cancel</span> Tolak</button>`;
+    html += `<button onclick="handleApprove('${reg.id}')" class="btn btn-primary"><span class="material-symbols-outlined">check_circle</span> Verifikasi</button>`;
+  }
+  if (reg.status === 'verified' || reg.status === 'document_complete') {
+    html += `<button onclick="handleSetCalonPeserta('${reg.id}')" class="btn bg-blue-50 text-blue-600 hover:bg-blue-100"><span class="material-symbols-outlined">how_to_reg</span> Tetapkan Calon Peserta</button>`;
+  }
+  html += `<a href="/api/exam-card/${reg.id}" target="_blank" class="btn bg-gray-100 text-gray-700 hover:bg-gray-200"><span class="material-symbols-outlined">download</span> Kartu Ujian</a>`;
+
+  actions.innerHTML = html;
+}
+
+// ========================
+// ACTIONS
+// ========================
+async function handleApprove(id) {
+  if (!confirm('Terima dan verifikasi Indent ini?')) return;
+  try {
+    const res = await fetch('/api/admin/registrations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'approve', registrationId: id })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast(result.message || 'Indent diverifikasi');
+      closeDetailModal();
+      loadRegistrations();
+    } else {
+      showToast(result.error || 'Gagal', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+async function handleSetCalonPeserta(id) {
+  if (!confirm('Tetapkan sebagai Calon Peserta?')) return;
+  try {
+    const res = await fetch('/api/admin/registrations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'set_calon_peserta', registrationId: id })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast(result.message || 'Ditetapkan sebagai Calon Peserta');
+      closeDetailModal();
+      loadRegistrations();
+    } else {
+      showToast(result.error || 'Gagal', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+function openRejectModal(id) {
+  const reg = allData.find(r => r.id === id);
+  if (!reg) return;
+  document.getElementById('rejectStudentName').textContent = reg.student_full_name || '-';
+  document.getElementById('rejectReason').value = '';
+  document.getElementById('rejectModal').classList.remove('hidden');
+}
+function closeRejectModal() { document.getElementById('rejectModal').classList.add('hidden'); }
+
+async function submitReject() {
+  const reason = document.getElementById('rejectReason').value.trim();
+  if (!reason) { showToast('Alasan wajib diisi', 'error'); return; }
+  if (!currentDetailId) return;
+
+  try {
+    const res = await fetch('/api/admin/registrations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'reject', registrationId: currentDetailId, reason })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Indent ditolak');
+      closeRejectModal();
+      closeDetailModal();
+      loadRegistrations();
+    } else {
+      showToast(result.error || 'Gagal', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+function openScheduleModal(id) {
+  const reg = allData.find(r => r.id === id);
+  if (!reg) return;
+  document.getElementById('scheduleStudentName').textContent = reg.student_full_name || '-';
+  document.getElementById('schDate').value = '';
+  document.getElementById('schTime').value = '';
+  document.getElementById('schLocation').value = '';
+  document.getElementById('scheduleModal').classList.remove('hidden');
+}
+function closeScheduleModal() { document.getElementById('scheduleModal').classList.add('hidden'); }
+
+async function submitSchedule() {
+  const testDate = document.getElementById('schDate').value;
+  const testTime = document.getElementById('schTime').value;
+  const testLocation = document.getElementById('schLocation').value;
+  if (!testDate || !testTime) { showToast('Tanggal dan waktu wajib diisi', 'error'); return; }
+
+  try {
+    const res = await fetch('/api/admin/registrations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'schedule', registrationId: currentDetailId, testDate, testTime, testLocation })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Jadwal tes disimpan');
+      closeScheduleModal();
+      closeDetailModal();
+      loadRegistrations();
+    } else {
+      showToast(result.error || 'Gagal', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+function openResultModal(id) {
+  const reg = allData.find(r => r.id === id);
+  if (!reg) return;
+  document.getElementById('resultStudentName').textContent = reg.student_full_name || '-';
+  document.getElementById('resultPassed').value = 'true';
+  document.getElementById('resultScore').value = '';
+  document.getElementById('resultModal').classList.remove('hidden');
+}
+function closeResultModal() { document.getElementById('resultModal').classList.add('hidden'); }
+
+async function submitResult() {
+  const passed = document.getElementById('resultPassed').value === 'true';
+  const testScore = document.getElementById('resultScore').value;
+  if (!currentDetailId) return;
+
+  try {
+    const res = await fetch('/api/admin/registrations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'result', registrationId: currentDetailId, passed, testScore })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast(passed ? 'Siswa dinyatakan LULUS' : 'Siswa dinyatakan TIDAK LULUS');
+      closeResultModal();
+      closeDetailModal();
+      loadRegistrations();
+    } else {
+      showToast(result.error || 'Gagal', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+// ========================
+// UTILS
+// ========================
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = type === 'error' ? 'error' : 'check_circle';
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+// Event listeners
+document.getElementById('btnRefresh').addEventListener('click', loadRegistrations);
+document.getElementById('btnFilter').addEventListener('click', applyFilters);
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('statusFilter').addEventListener('change', applyFilters);
+document.getElementById('sortFilter').addEventListener('change', applyFilters);
+
+// Close modals on backdrop click
+['detailModal', 'scheduleModal', 'resultModal', 'rejectModal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      if (id === 'detailModal') closeDetailModal();
+      if (id === 'scheduleModal') closeScheduleModal();
+      if (id === 'resultModal') closeResultModal();
+      if (id === 'rejectModal') closeRejectModal();
+    }
+  });
+});
+
+// Init
+loadRegistrations();
+</script>

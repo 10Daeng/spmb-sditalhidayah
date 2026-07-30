@@ -1,0 +1,203 @@
+---
+export const prerender = false;
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Kriteria Seleksi" activeMenu="kriteria-seleksi">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Kriteria Seleksi</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Atur kuota, bobot penilaian, dan passing grade SPMB</p>
+    </div>
+    <button id="btnSave" class="btn btn-primary">
+      <span class="material-symbols-outlined">save</span>
+      Simpan Perubahan
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Quota Card -->
+    <div class="card p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="material-symbols-outlined text-blue-500">groups</span>
+        <h3 class="font-semibold text-gray-900">Kuota Penerimaan</h3>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tahun Ajaran</label>
+          <input type="text" id="academicYear" class="input w-full" value="2026/2027">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Jalur Reguler</label>
+          <input type="number" id="quotaRegular" class="input w-full" value="60">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Jalur Khusus / Indent</label>
+          <input type="number" id="quotaIndent" class="input w-full" value="20">
+        </div>
+        <div class="pt-2 border-t border-gray-100">
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500">Total Kuota</span>
+            <span class="font-bold text-blue-600" id="totalQuota">120</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weight Card -->
+    <div class="card p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="material-symbols-outlined text-purple-500">balance</span>
+        <h3 class="font-semibold text-gray-900">Bobot Penilaian</h3>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tes / Ujian (%)</label>
+          <input type="number" id="weightTest" class="input w-full" value="50" min="0" max="100" step="0.01">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Kelengkapan Dokumen (%)</label>
+          <input type="number" id="weightDocument" class="input w-full" value="20" min="0" max="100" step="0.01">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Wawancara (%)</label>
+          <input type="number" id="weightInterview" class="input w-full" value="30" min="0" max="100" step="0.01">
+        </div>
+        <div class="pt-2 border-t border-gray-100">
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500">Total Bobot</span>
+            <span class="font-bold" id="totalWeight">100%</span>
+          </div>
+          <p class="text-xs text-red-500 mt-1 hidden" id="weightError">Total bobot harus 100%</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Passing Grade Card -->
+    <div class="card p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="material-symbols-outlined text-emerald-500">school</span>
+        <h3 class="font-semibold text-gray-900">Passing Grade</h3>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nilai Minimum Kelulusan (%)</label>
+          <input type="number" id="passingGrade" class="input w-full" value="60" min="0" max="100" step="0.01">
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="text-xs text-gray-500 mb-2">Statistik Pendaftar</p>
+          <div class="space-y-2">
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">Menunggu</span>
+              <span class="font-medium" id="countPending">0</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">Terverifikasi</span>
+              <span class="font-medium" id="countVerified">0</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">Lulus</span>
+              <span class="font-medium text-emerald-600" id="countLulus">0</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">Tidak Lulus</span>
+              <span class="font-medium text-red-500" id="countTidakLulus">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 right-6 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2">
+    <span id="toastIcon" class="material-symbols-outlined">check_circle</span>
+    <span id="toastMsg"></span>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+async function loadCriteria() {
+  try {
+    const res = await fetch('/api/admin/selection-criteria', { credentials: 'include' });
+    const result = await res.json();
+
+    if (result.data) {
+      const d = result.data;
+      document.getElementById('academicYear').value = d.academic_year || '2026/2027';
+      document.getElementById('quotaRegular').value = d.quota_regular || 60;
+      document.getElementById('quotaIndent').value = d.quota_indent || 20;
+      document.getElementById('weightTest').value = d.weight_test_score || 50;
+      document.getElementById('weightDocument').value = d.weight_document || 20;
+      document.getElementById('weightInterview').value = d.weight_interview || 30;
+      document.getElementById('passingGrade').value = d.passing_grade || 60;
+      updateTotals();
+    }
+
+    // Stats
+    const sc = result.statusCounts || {};
+    document.getElementById('countPending').textContent = sc.pending || 0;
+    document.getElementById('countVerified').textContent = sc.verified || 0;
+    document.getElementById('countLulus').textContent = sc.lulus || 0;
+    document.getElementById('countTidakLulus').textContent = sc['tidak_lulus'] || 0;
+  } catch (e) {}
+}
+
+function updateTotals() {
+  const r = parseInt(document.getElementById('quotaRegular').value) || 0;
+  const i = parseInt(document.getElementById('quotaIndent').value) || 0;
+  document.getElementById('totalQuota').textContent = (r + i);
+
+  const wt = parseFloat(document.getElementById('weightTest').value) || 0;
+  const wd = parseFloat(document.getElementById('weightDocument').value) || 0;
+  const wi = parseFloat(document.getElementById('weightInterview').value) || 0;
+  const tw = wt + wd + wi;
+  const twEl = document.getElementById('totalWeight');
+  twEl.textContent = tw.toFixed(2) + '%';
+  twEl.className = 'font-bold ' + (Math.abs(tw - 100) < 0.01 ? 'text-emerald-600' : 'text-red-500');
+  document.getElementById('weightError').classList.toggle('hidden', Math.abs(tw - 100) < 0.01);
+}
+
+['quotaRegular', 'quotaIndent', 'weightTest', 'weightDocument', 'weightInterview'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateTotals);
+});
+
+document.getElementById('btnSave').addEventListener('click', async () => {
+  const body = {
+    academic_year: document.getElementById('academicYear').value,
+    quota_regular: document.getElementById('quotaRegular').value,
+    quota_indent: document.getElementById('quotaIndent').value,
+    weight_test_score: document.getElementById('weightTest').value,
+    weight_document: document.getElementById('weightDocument').value,
+    weight_interview: document.getElementById('weightInterview').value,
+    passing_grade: document.getElementById('passingGrade').value
+  };
+
+  try {
+    const res = await fetch('/api/admin/selection-criteria', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body)
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Kriteria seleksi disimpan');
+    } else {
+      showToast(result.error || 'Gagal menyimpan', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+});
+
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = type === 'error' ? 'error' : 'check_circle';
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+loadCriteria();
+</script>

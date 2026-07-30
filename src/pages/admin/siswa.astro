@@ -1,0 +1,517 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { supabaseAdmin } from '../../lib/supabase.js';
+
+let students = [];
+let statusCounts = { total: 0, pending: 0, verified: 0, scheduled: 0, lulus: 0, tidak_lulus: 0, rejected: 0 };
+let fetchError = null;
+
+try {
+  const { data, error } = await supabaseAdmin
+    .from('registrations')
+    .select('id, registration_number, student_full_name, date_of_birth, gender, parent_name, parent_phone, status, created_at, test_date, test_score')
+    .in('status', ['pending', 'verified', 'document_complete', 'scheduled', 'lulus', 'tidak_lulus', 'enrolled', 'rejected'])
+    .order('created_at', { ascending: false })
+    .limit(200);
+
+  if (error) {
+    fetchError = error.message;
+  } else if (data) {
+    students = data;
+    statusCounts.total = data.length;
+    data.forEach(s => {
+      const st = s.status || 'pending';
+      if (statusCounts[st] !== undefined) statusCounts[st] = (statusCounts[st] || 0) + 1;
+    });
+  }
+} catch (e) {
+  fetchError = e.message || String(e);
+}
+
+const statusConfig = {
+  pending: { bg: 'bg-yellow-50', text: 'text-yellow-700', label: 'Menunggu' },
+  verified: { bg: 'bg-blue-50', text: 'text-blue-700', label: 'Terverifikasi' },
+  document_complete: { bg: 'bg-indigo-50', text: 'text-indigo-700', label: 'Dokumen Lengkap' },
+  scheduled: { bg: 'bg-purple-50', text: 'text-purple-700', label: 'Dijadwalkan' },
+  lulus: { bg: 'bg-green-50', text: 'text-green-700', label: 'Lulus' },
+  tidak_lulus: { bg: 'bg-red-50', text: 'text-red-700', label: 'Tidak Lulus' },
+  enrolled: { bg: 'bg-emerald-50', text: 'text-emerald-700', label: 'Daftar Ulang' },
+  rejected: { bg: 'bg-gray-50', text: 'text-gray-700', label: 'Ditolak' },
+};
+
+const formatDate = (d: string) => {
+  if (!d) return '-';
+  return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+---
+
+<AdminLayout title="Data Siswa" activeMenu="siswa">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Data Siswa</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Daftar pendaftar dan siswa terdaftar</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="relative" id="export-dropdown-wrap">
+        <button type="button" class="btn btn-outline text-sm" id="export-btn" onclick="toggleExportDropdown()">
+          <span class="material-symbols-outlined export-icon" style="font-size:18px;">download</span>
+          <span id="export-btn-text">Export</span>
+          <span class="material-symbols-outlined" style="font-size:16px;">arrow_drop_down</span>
+        </button>
+        <div id="export-dropdown" class="hidden absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1">
+          <button onclick="doExport('xlsx')" class="export-option w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5">
+            <span class="material-symbols-outlined" style="font-size:18px; color: #16a34a;">table_view</span>
+            <div>
+              <div class="font-medium">Excel (.xlsx)</div>
+              <div class="text-xs text-gray-400">Untuk Microsoft Excel</div>
+            </div>
+          </button>
+          <button onclick="doExport('csv')" class="export-option w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5">
+            <span class="material-symbols-outlined" style="font-size:18px; color: #2563eb;">csv</span>
+            <div>
+              <div class="font-medium">CSV (.csv)</div>
+              <div class="text-xs text-gray-400">Untuk Google Sheets dll</div>
+            </div>
+          </button>
+        </div>
+      </div>
+      <!-- Export error/success toast -->
+      <div id="export-toast" class="hidden fixed top-4 right-4 z-[100] max-w-sm"></div>
+      <a href="/admin/verifikasi" class="btn btn-primary text-sm">
+        <span class="material-symbols-outlined" style="font-size:18px;">how_to_reg</span>
+        Verifikasi SPMB
+      </a>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="card p-4">
+      <p class="text-xs text-gray-500 uppercase font-semibold">Total</p>
+      <p class="text-2xl font-bold text-gray-900">{statusCounts.total}</p>
+    </div>
+    <div class="card p-4">
+      <p class="text-xs text-yellow-600 uppercase font-semibold">Menunggu</p>
+      <p class="text-2xl font-bold text-yellow-600">{statusCounts.pending || 0}</p>
+    </div>
+    <div class="card p-4">
+      <p class="text-xs text-blue-600 uppercase font-semibold">Terverifikasi</p>
+      <p class="text-2xl font-bold text-blue-600">{statusCounts.verified || 0}</p>
+    </div>
+    <div class="card p-4">
+      <p class="text-xs text-green-600 uppercase font-semibold">Lulus</p>
+      <p class="text-2xl font-bold text-green-600">{statusCounts.lulus || 0}</p>
+    </div>
+  </div>
+
+  {fetchError && (
+    <div class="card p-4 mb-6 bg-red-50 border border-red-200">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-red-500">error</span>
+        <div>
+          <p class="font-semibold text-red-700 text-sm">Gagal memuat data siswa</p>
+          <p class="text-xs text-red-600 mt-1 font-mono">{fetchError}</p>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <div class="card">
+    <div class="px-5 py-3 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+      <div class="flex items-center gap-3 flex-wrap">
+        <select id="filter-status" onchange="filterTable()" class="input !w-auto !py-2 !px-3 text-sm">
+          <option value="all">Semua Status</option>
+          <option value="pending">Menunggu</option>
+          <option value="verified">Terverifikasi</option>
+          <option value="document_complete">Dokumen Lengkap</option>
+          <option value="scheduled">Dijadwalkan</option>
+          <option value="lulus">Lulus</option>
+          <option value="tidak_lulus">Tidak Lulus</option>
+          <option value="enrolled">Daftar Ulang</option>
+          <option value="rejected">Ditolak</option>
+        </select>
+        <input type="text" id="search-input" placeholder="Cari nama atau no. pendaftaran..." oninput="filterTable()" class="input !w-56 !py-2 text-sm" />
+      </div>
+      <p class="text-xs text-gray-400" id="count-label">{students.length} data</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>No. Pendaftaran</th>
+            <th>Nama Siswa</th>
+            <th>L/P</th>
+            <th>Orang Tua</th>
+            <th>Status</th>
+            <th>Tgl Daftar</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="students-table">
+          {students.length === 0 ? (
+            <tr>
+              <td colspan="7" class="text-center text-gray-400 py-12">
+                <span class="material-symbols-outlined text-5xl text-gray-300 block mb-2">groups</span>
+                <p class="font-semibold text-gray-500">Belum ada data siswa</p>
+                <p class="text-sm">Data akan muncul setelah ada Indent SPMB</p>
+              </td>
+            </tr>
+          ) : students.map(s => {
+            const sc = statusConfig[s.status] || statusConfig.pending;
+            return (
+              <tr class="student-row" data-status={s.status} data-name={(s.student_full_name || '').toLowerCase()} data-regno={(s.registration_number || '').toLowerCase()}>
+                <td><span class="font-mono text-xs text-gray-500">{s.registration_number}</span></td>
+                <td><span class="font-medium text-gray-900">{s.student_full_name || '-'}</span></td>
+                <td><span class="text-sm">{s.gender === 'L' ? 'Laki-laki' : s.gender === 'P' ? 'Perempuan' : '-'}</span></td>
+                <td>
+                  <div class="text-sm text-gray-700">{s.parent_name || '-'}</div>
+                  {s.parent_phone && <div class="text-xs text-gray-400">{s.parent_phone}</div>}
+                </td>
+                <td><span class={`badge ${sc.bg} ${sc.text}`}>{sc.label}</span></td>
+                <td><span class="text-sm text-gray-500">{formatDate(s.created_at)}</span></td>
+                <td>
+                  <button class="btn btn-ghost text-xs px-2 py-1" onclick={`viewDetail('${s.id}')`}>
+                    <span class="material-symbols-outlined" style="font-size:16px;">visibility</span>
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="card p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-semibold text-gray-900">Detail Siswa</h3>
+        <button onclick="closeDetail()" class="p-1 hover:bg-gray-100 rounded">
+          <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+        </button>
+      </div>
+      <div id="detail-content" class="space-y-4 text-sm">
+        <div class="text-center text-gray-400 py-8">Memuat data...</div>
+      </div>
+      <div class="flex justify-between gap-3 pt-4 mt-4 border-t border-gray-100" id="detail-actions">
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+  // ─── Export Logic ──────────────────────────────
+  let _exportBusy = false;
+
+  function toggleExportDropdown() {
+    if (_exportBusy) return; // Don't open dropdown while exporting
+    const dropdown = document.getElementById('export-dropdown');
+    dropdown.classList.toggle('hidden');
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('export-dropdown-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      document.getElementById('export-dropdown')?.classList.add('hidden');
+    }
+  });
+
+  function showExportToast(message, isError) {
+    const toast = document.getElementById('export-toast');
+    if (!toast) return;
+    const bgColor = isError ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200';
+    const textColor = isError ? 'text-red-700' : 'text-green-700';
+    const icon = isError ? 'error' : 'check_circle';
+    const iconColor = isError ? 'text-red-500' : 'text-green-500';
+
+    toast.innerHTML = `
+      <div class="card ${bgColor} border p-4 shadow-lg flex items-start gap-3" style="animation: slideIn 0.3s ease-out;">
+        <span class="material-symbols-outlined ${iconColor}" style="font-size:20px;">${icon}</span>
+        <div class="flex-1">
+          <p class="text-sm font-medium ${textColor}">${message}</p>
+          ${isError ? '<button onclick="retryExport()" class="text-xs text-blue-600 hover:underline mt-1">Coba lagi</button>' : ''}
+        </div>
+        <button onclick="document.getElementById(\'export-toast\').classList.add(\'hidden\')" class="text-gray-400 hover:text-gray-600">
+          <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+        </button>
+      </div>
+    `;
+    toast.classList.remove('hidden');
+
+    // Auto-hide success after 4s
+    if (!isError) {
+      setTimeout(() => toast.classList.add('hidden'), 4000);
+    }
+  }
+
+  function setExportLoading(loading) {
+    _exportBusy = loading;
+    const btn = document.getElementById('export-btn');
+    const btnText = document.getElementById('export-btn-text');
+    const icon = btn?.querySelector('.export-icon');
+    const options = document.querySelectorAll('.export-option');
+
+    if (loading) {
+      btn?.setAttribute('disabled', 'true');
+      btn?.classList.add('opacity-60', 'cursor-wait');
+      if (icon) icon.textContent = 'hourglass_top';
+      if (btnText) btnText.textContent = 'Mengekspor...';
+      options.forEach(o => o.setAttribute('disabled', 'true'));
+    } else {
+      btn?.removeAttribute('disabled');
+      btn?.classList.remove('opacity-60', 'cursor-wait');
+      if (icon) icon.textContent = 'download';
+      if (btnText) btnText.textContent = 'Export';
+      options.forEach(o => o.removeAttribute('disabled'));
+    }
+  }
+
+  // Track last export params for retry
+  let _lastExportFormat = 'xlsx';
+
+  async function doExport(format) {
+    if (_exportBusy) return;
+
+    _lastExportFormat = format;
+    document.getElementById('export-dropdown')?.classList.add('hidden');
+    document.getElementById('export-toast')?.classList.add('hidden');
+    setExportLoading(true);
+
+    try {
+      const status = document.getElementById('filter-status')?.value || 'all';
+      const params = new URLSearchParams();
+      params.set('format', format);
+      if (status && status !== 'all') {
+        params.set('status', status);
+      }
+
+      const response = await fetch('/api/admin/export-registrations?' + params.toString(), {
+        credentials: 'same-origin' // Ensure cookies (auth) are sent
+      });
+
+      // Check for export error via header or status code
+      const isExportError = response.headers.get('X-Export-Error') === 'true';
+
+      if (!response.ok || isExportError) {
+        // Try to parse JSON error message
+        let errorMsg = 'Gagal mengekspor data';
+        try {
+          const errData = await response.json();
+          if (errData.error) errorMsg = errData.error;
+        } catch (e) {
+          errorMsg = `Server error (${response.status})`;
+        }
+        showExportToast(errorMsg, true);
+        return;
+      }
+
+      // Success — download the blob
+      const blob = await response.blob();
+      const contentDisp = response.headers.get('Content-Disposition') || '';
+      const filenameMatch = contentDisp.match(/filename="?([^";\n]+)"?/);
+      const filename = filenameMatch ? filenameMatch[1] : `data-spmb.${format}`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+
+      // Cleanup
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        a.remove();
+      }, 100);
+
+      showExportToast(`File ${format.toUpperCase()} berhasil diunduh!`, false);
+
+    } catch (err) {
+      console.error('[Export] Client error:', err);
+      // Network error, timeout, etc.
+      showExportToast('Gagal terhubung ke server. Periksa koneksi internet Anda.', true);
+    } finally {
+      setExportLoading(false);
+    }
+  }
+
+  function retryExport() {
+    document.getElementById('export-toast')?.classList.add('hidden');
+    doExport(_lastExportFormat);
+  }
+
+  // ─── Table Filter ──────────────────────────────
+  function filterTable() {
+    const status = document.getElementById('filter-status')?.value;
+    const search = (document.getElementById('search-input')?.value || '').toLowerCase();
+    const rows = document.querySelectorAll('.student-row');
+    let count = 0;
+
+    rows.forEach(row => {
+      const matchStatus = status === 'all' || row.dataset.status === status;
+      const matchSearch = !search || row.dataset.name?.includes(search) || row.dataset.regno?.includes(search);
+      const visible = matchStatus && matchSearch;
+      row.style.display = visible ? '' : 'none';
+      if (visible) count++;
+    });
+
+    const label = document.getElementById('count-label');
+    if (label) label.textContent = count + ' data';
+  }
+
+  function viewDetail(id) {
+    const modal = document.getElementById('detail-modal');
+    const content = document.getElementById('detail-content');
+    const actions = document.getElementById('detail-actions');
+    content.innerHTML = '<div class="text-center text-gray-400 py-8">Memuat data...</div>';
+    actions.innerHTML = '';
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+
+    fetch('/api/admin/registrations?status=all')
+      .then(r => r.json())
+      .then(result => {
+        const student = (result.data || []).find(s => s.id === id);
+        if (!student) { content.innerHTML = '<div class="text-center text-gray-400 py-8">Data tidak ditemukan</div>'; return; }
+
+        const statusLabels = {
+          pending: 'Menunggu Verifikasi', verified: 'Terverifikasi', document_complete: 'Dokumen Lengkap',
+          scheduled: 'Dijadwalkan Tes', lulus: 'Lulus', tidak_lulus: 'Tidak Lulus',
+          enrolled: 'Daftar Ulang', rejected: 'Ditolak'
+        };
+
+        content.innerHTML = `
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <p class="text-gray-500 text-xs mb-1">No. Pendaftaran</p>
+              <p class="font-mono font-semibold text-gray-900">${student.registration_number}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs mb-1">Status</p>
+              <p class="font-semibold">${statusLabels[student.status] || student.status}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs mb-1">Nama Siswa</p>
+              <p class="font-medium text-gray-900">${student.student_full_name || '-'}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs mb-1">Jenis Kelamin</p>
+              <p>${student.gender === 'L' ? 'Laki-laki' : student.gender === 'P' ? 'Perempuan' : '-'}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs mb-1">Tanggal Lahir</p>
+              <p>${student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-'}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs mb-1">Tanggal Daftar</p>
+              <p>${new Date(student.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+            </div>
+          </div>
+          <hr class="my-4 border-gray-100">
+          <div>
+            <p class="text-gray-500 text-xs mb-1">Nama Orang Tua / Wali</p>
+            <p class="font-medium text-gray-900">${student.parent_name || '-'}</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
+            <div>
+              <p class="text-gray-500 text-xs mb-1">No. Telepon</p>
+              <p>${student.parent_phone || '-'}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs mb-1">Email</p>
+              <p>${student.parent_email || '-'}</p>
+            </div>
+          </div>
+          ${student.test_date ? `
+          <hr class="my-4 border-gray-100">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <p class="text-gray-500 text-xs mb-1">Tanggal Tes</p>
+              <p>${new Date(student.test_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs mb-1">Waktu Tes</p>
+              <p>${student.test_time || '-'}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs mb-1">Lokasi</p>
+              <p>${student.test_location || '-'}</p>
+            </div>
+          </div>` : ''}
+          ${student.test_score != null ? `
+          <div class="mt-3">
+            <p class="text-gray-500 text-xs mb-1">Nilai Tes</p>
+            <p class="text-lg font-bold">${student.test_score}</p>
+          </div>` : ''}
+          ${student.verification_notes ? `
+          <div class="mt-3">
+            <p class="text-gray-500 text-xs mb-1">Catatan Verifikasi</p>
+            <p class="text-gray-700">${student.verification_notes}</p>
+          </div>` : ''}
+        `;
+
+        let actionHTML = '';
+        if (student.status === 'pending') {
+          actionHTML = `
+            <button class="btn btn-outline text-sm" onclick="closeDetail()">Tutup</button>
+            <div class="flex gap-2">
+              <button class="btn text-sm bg-red-600 text-white hover:bg-red-700" onclick="changeStatus('${student.id}', 'rejected')">Tolak</button>
+              <button class="btn btn-primary text-sm" onclick="changeStatus('${student.id}', 'verified')">Verifikasi</button>
+            </div>`;
+        } else if (student.status === 'verified') {
+          actionHTML = `
+            <button class="btn btn-outline text-sm" onclick="closeDetail()">Tutup</button>
+            <div class="flex gap-2">
+              <button class="btn text-sm bg-red-600 text-white hover:bg-red-700" onclick="changeStatus('${student.id}', 'rejected')">Tolak</button>
+              <button class="btn btn-primary text-sm" onclick="changeStatus('${student.id}', 'scheduled')">Jadwalkan Tes</button>
+            </div>`;
+        } else if (student.status === 'scheduled') {
+          actionHTML = `
+            <button class="btn btn-outline text-sm" onclick="closeDetail()">Tutup</button>
+            <div class="flex gap-2">
+              <button class="btn text-sm bg-red-600 text-white hover:bg-red-700" onclick="changeStatus('${student.id}', 'tidak_lulus')">Tidak Lulus</button>
+              <button class="btn text-sm bg-green-600 text-white hover:bg-green-700" onclick="changeStatus('${student.id}', 'lulus')">Lulus</button>
+            </div>`;
+        } else {
+          actionHTML = `<button class="btn btn-outline text-sm" onclick="closeDetail()">Tutup</button>`;
+        }
+        actions.innerHTML = actionHTML;
+      })
+      .catch(err => {
+        content.innerHTML = '<div class="text-center text-red-400 py-8">Gagal memuat data</div>';
+        console.error(err);
+      });
+  }
+
+  function closeDetail() {
+    document.getElementById('detail-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  function changeStatus(id, newStatus) {
+    const statusLabels = { verified: 'verifikasi', scheduled: 'jadwalkan', lulus: 'nyatakan lulus', rejected: 'tolak', tidak_lulus: 'nyatakan tidak lulus' };
+    if (!confirm('Yakin ingin ' + (statusLabels[newStatus] || 'ubah status ke ' + newStatus) + '?')) return;
+
+    fetch('/api/admin/registrations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: newStatus === 'rejected' ? 'reject' : (newStatus === 'lulus' ? 'result' : (newStatus === 'tidak_lulus' ? 'result' : (newStatus === 'verified' ? 'approve' : 'schedule'))), registrationId: id, passed: newStatus === 'lulus' })
+    })
+    .then(r => r.json())
+    .then(result => {
+      if (result.success) {
+        alert('Status berhasil diubah!');
+        closeDetail();
+        location.reload();
+      } else {
+        alert('Gagal: ' + (result.error || 'Unknown error'));
+      }
+    })
+    .catch(err => { alert('Error: ' + err.message); });
+  }
+
+  document.getElementById('detail-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeDetail();
+  });
+</script>

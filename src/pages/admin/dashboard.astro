@@ -1,0 +1,214 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Dashboard" activeMenu="dashboard">
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Dashboard Overview</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Ringkasan data dan statistik SPMB</p>
+    </div>
+    <a href="/admin/verifikasi" class="btn btn-primary text-sm">
+      <span class="material-symbols-outlined" style="font-size:18px;">how_to_reg</span>
+      Verifikasi SPMB
+    </a>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="card stat-card stat-total p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Total Pendaftar</span>
+        <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-purple-600" style="font-size:22px;">groups</span>
+        </div>
+      </div>
+      <p id="stat-total" class="text-3xl font-bold text-gray-900">—</p>
+    </div>
+
+    <div class="card stat-card stat-pending p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Menunggu</span>
+        <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-amber-600" style="font-size:22px;">schedule</span>
+        </div>
+      </div>
+      <p id="stat-pending" class="text-3xl font-bold text-gray-900">—</p>
+      <p class="text-xs text-amber-700 mt-1">Perlu ditinjau</p>
+    </div>
+
+    <div class="card stat-card stat-verified p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Terverifikasi</span>
+        <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-blue-600" style="font-size:22px;">verified</span>
+        </div>
+      </div>
+      <p id="stat-verified" class="text-3xl font-bold text-gray-900">—</p>
+    </div>
+
+    <div class="card stat-card stat-lulus p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Lulus</span>
+        <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-green-600" style="font-size:22px;">check_circle</span>
+        </div>
+      </div>
+      <p id="stat-lulus" class="text-3xl font-bold text-gray-900">—</p>
+    </div>
+  </div>
+
+  <!-- Secondary Stats -->
+  <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <div class="card p-4 flex items-center gap-4">
+      <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-indigo-600" style="font-size:20px;">event</span>
+      </div>
+      <div>
+        <p class="text-xs text-gray-500">Dijadwalkan</p>
+        <p id="stat-scheduled" class="text-lg font-bold text-gray-900">—</p>
+      </div>
+    </div>
+    <div class="card p-4 flex items-center gap-4">
+      <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-teal-600" style="font-size:20px;">description</span>
+      </div>
+      <div>
+        <p class="text-xs text-gray-500">Dokumen Lengkap</p>
+        <p id="stat-doccomplete" class="text-lg font-bold text-gray-900">—</p>
+      </div>
+    </div>
+    <div class="card stat-card stat-rejected p-4 flex items-center gap-4">
+      <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-red-600" style="font-size:20px;">cancel</span>
+      </div>
+      <div>
+        <p class="text-xs text-gray-500">Ditolak</p>
+        <p id="stat-rejected" class="text-lg font-bold text-gray-900">—</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent SPMB + Quick Actions -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Recent Registrations Table -->
+    <div class="lg:col-span-2 card">
+      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="font-semibold text-gray-900">Indent Terbaru</h3>
+        <a href="/admin/verifikasi" class="text-sm text-blue-700 hover:text-blue-800 font-medium flex items-center gap-1">
+          Lihat semua
+          <span class="material-symbols-outlined" style="font-size:16px;">arrow_forward</span>
+        </a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>No. Registrasi</th>
+              <th>Nama</th>
+              <th>Jalur</th>
+              <th>Status</th>
+              <th>Tanggal</th>
+            </tr>
+          </thead>
+          <tbody id="recent-table">
+            <tr><td colspan="5" class="text-center text-gray-400 py-10">Memuat data...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="space-y-4">
+      <div class="card p-5">
+        <h3 class="font-semibold text-gray-900 mb-4">Aksi Cepat</h3>
+        <div class="space-y-2">
+          <a href="/admin/verifikasi" class="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-gray-50 transition-colors group">
+            <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+              <span class="material-symbols-outlined text-blue-600" style="font-size:20px;">fact_check</span>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-800 group-hover:text-blue-700">Verifikasi SPMB</p>
+              <p class="text-xs text-gray-500">Tinjau pendaftar baru</p>
+            </div>
+          </a>
+          <a href="/admin/berita" class="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-gray-50 transition-colors group">
+            <div class="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center">
+              <span class="material-symbols-outlined text-green-600" style="font-size:20px;">edit_note</span>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-800 group-hover:text-green-700">Kelola Berita</p>
+              <p class="text-xs text-gray-500">Buat & sunting artikel</p>
+            </div>
+          </a>
+          <a href="/admin/pengaturan" class="flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-gray-50 transition-colors group">
+            <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center">
+              <span class="material-symbols-outlined text-amber-600" style="font-size:20px;">settings</span>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-800 group-hover:text-amber-700">Pengaturan</p>
+              <p class="text-xs text-gray-500">Konfigurasi aplikasi</p>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- SPMB Status Widget -->
+      <div class="bg-blue-900 text-white rounded-xl p-5">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="material-symbols-outlined" style="font-size:18px;">campaign</span>
+          <span class="text-xs font-semibold uppercase tracking-wider opacity-80">SPMB Aktif</span>
+        </div>
+        <p class="text-sm font-medium opacity-90">Tahun Ajaran 2026/2027</p>
+        <p class="text-xs opacity-60 mt-1">Indent dibuka untuk jalur Reguler, Prestasi, dan Afirmasi.</p>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/admin/dashboard-stats');
+      const result = await res.json();
+      if (!result.success) return;
+
+      const d = result.data.overview;
+      document.getElementById('stat-total').textContent = d.totalPendaftar ?? '0';
+      document.getElementById('stat-pending').textContent = d.pending ?? '0';
+      document.getElementById('stat-verified').textContent = d.verified ?? '0';
+      document.getElementById('stat-lulus').textContent = d.lulus ?? '0';
+      document.getElementById('stat-scheduled').textContent = d.scheduled ?? '0';
+      document.getElementById('stat-doccomplete').textContent = d.documentComplete ?? '0';
+      document.getElementById('stat-rejected').textContent = d.rejected ?? '0';
+
+      const trackLabels = { regular: 'Reguler', prestasi: 'Prestasi', afirmasi: 'Afirmasi', zonasi: 'Zonasi' };
+      const statusLabels = {
+        pending: 'Menunggu', verified: 'Terverifikasi', document_complete: 'Dokumen Lengkap',
+        scheduled: 'Dijadwalkan', lulus: 'Lulus', tidak_lulus: 'Tidak Lulus', rejected: 'Ditolak',
+      };
+
+      const tbody = document.getElementById('recent-table');
+      if (tbody && result.data.recentRegistrations?.length) {
+        tbody.innerHTML = result.data.recentRegistrations.map(r => {
+          const badgeClass = 'badge badge-' + (r.status || 'pending');
+          const label = statusLabels[r.status] || r.status;
+          const track = trackLabels[r.track] || r.track || '-';
+          const date = new Date(r.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+          return `<tr>
+            <td><span class="font-mono text-xs text-gray-500">${r.registration_number}</span></td>
+            <td><span class="font-medium text-gray-900">${r.student_full_name || '-'}</span></td>
+            <td><span class="text-sm text-gray-600">${track}</span></td>
+            <td><span class="${badgeClass}">${label}</span></td>
+            <td><span class="text-sm text-gray-500">${date}</span></td>
+          </tr>`;
+        }).join('');
+      } else if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 py-10">Belum ada Indent</td></tr>';
+      }
+    } catch (err) { console.error('Failed to load stats:', err); }
+  }
+  loadStats();
+</script>

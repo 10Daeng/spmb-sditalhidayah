@@ -1,0 +1,208 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Kelola Halaman" activeMenu="halaman">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Kelola Halaman</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Edit konten halaman publik (Tentang Kami, SPMB, Kontak, dll)</p>
+    </div>
+  </div>
+
+  <div class="card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="data-table min-w-[700px]">
+        <thead>
+          <tr>
+            <th>Halaman</th>
+            <th>Slug</th>
+            <th>Status</th>
+            <th>Navigasi</th>
+            <th class="w-24">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="pagesBody">
+          <tr><td colspan="5" class="text-center py-12 text-gray-400">Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-lg max-w-3xl w-full max-h-[92vh] overflow-hidden flex flex-col">
+      <div class="p-5 border-b border-gray-100 flex justify-between items-center shrink-0">
+        <div>
+          <h3 class="text-lg font-semibold">Edit Halaman</h3>
+          <p class="text-sm text-gray-500" id="editSlug">/</p>
+        </div>
+        <button onclick="closeEditModal()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center">
+          <span class="material-symbols-outlined text-gray-500">close</span>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-5 space-y-4">
+        <input type="hidden" id="editId" value="">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Judul Halaman</label>
+          <input type="text" id="editTitle" class="input w-full">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Slug (URL)</label>
+          <input type="text" id="editSlugInput" class="input w-full font-mono text-sm" disabled>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Konten (HTML)</label>
+          <textarea id="editContent" rows="12" class="input w-full font-mono text-sm" placeholder="<h2>Judul</h2><p>Paragraf...</p>"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Meta Title</label>
+            <input type="text" id="editMetaTitle" class="input w-full">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Meta Keywords</label>
+            <input type="text" id="editMetaKeywords" class="input w-full">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Meta Description</label>
+          <textarea id="editMetaDesc" rows="2" class="input w-full text-sm resize-none"></textarea>
+        </div>
+        <div class="flex items-center gap-4">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="editPublished" class="w-4 h-4 rounded border-gray-300 text-blue-600">
+            <span class="text-sm text-gray-700">Published</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="editShowNav" class="w-4 h-4 rounded border-gray-300 text-blue-600">
+            <span class="text-sm text-gray-700">Tampil di Navigasi</span>
+          </label>
+        </div>
+      </div>
+      <div class="p-5 border-t border-gray-100 flex justify-end gap-2 shrink-0 bg-gray-50">
+        <button onclick="closeEditModal()" class="btn bg-gray-100 text-gray-700 hover:bg-gray-200">Batal</button>
+        <button onclick="savePage()" class="btn btn-primary">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 right-6 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2">
+    <span id="toastIcon" class="material-symbols-outlined">check_circle</span>
+    <span id="toastMsg"></span>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+let currentPages = [];
+
+async function loadPages() {
+  const tbody = document.getElementById('pagesBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="text-center py-12 text-gray-400">Memuat data...</td></tr>';
+
+  try {
+    const res = await fetch('/api/admin/site-pages', { credentials: 'include' });
+    const result = await res.json();
+
+    if (result.success) {
+      currentPages = result.data || [];
+      renderTable();
+    } else {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-12 text-gray-400">Gagal memuat data</td></tr>';
+    }
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-12 text-gray-400">Terjadi kesalahan</td></tr>';
+  }
+}
+
+function renderTable() {
+  const tbody = document.getElementById('pagesBody');
+  if (!currentPages.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-12 text-gray-400">Tidak ada halaman</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = currentPages.map(p => {
+    return `<tr class="hover:bg-gray-50 transition-colors">
+      <td>
+        <div class="font-medium text-sm text-gray-900">${p.title}</div>
+        <div class="text-xs text-gray-400">${p.meta_title || '-'}</div>
+      </td>
+      <td class="font-mono text-xs text-gray-600">/${p.slug}</td>
+      <td><span class="badge ${p.is_published ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-gray-500'} text-xs">${p.is_published ? 'Published' : 'Draft'}</span></td>
+      <td><span class="badge ${p.show_in_nav ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400'} text-xs">${p.show_in_nav ? 'Ya' : 'Tidak'}</span></td>
+      <td>
+        <div class="flex gap-1">
+          <button onclick="openEditModal('${p.id}')" class="w-8 h-8 rounded-lg hover:bg-blue-50 text-blue-600 flex items-center justify-center" title="Edit"><span class="material-symbols-outlined" style="font-size:18px;">edit</span></button>
+          <a href="/${p.slug}" target="_blank" class="w-8 h-8 rounded-lg hover:bg-gray-100 text-gray-500 flex items-center justify-center" title="Lihat"><span class="material-symbols-outlined" style="font-size:18px;">visibility</span></a>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openEditModal(id) {
+  const p = currentPages.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('editId').value = p.id;
+  document.getElementById('editSlug').textContent = '/' + p.slug;
+  document.getElementById('editTitle').value = p.title || '';
+  document.getElementById('editSlugInput').value = p.slug || '';
+  document.getElementById('editContent').value = p.content || '';
+  document.getElementById('editMetaTitle').value = p.meta_title || '';
+  document.getElementById('editMetaDesc').value = p.meta_description || '';
+  document.getElementById('editMetaKeywords').value = p.meta_keywords || '';
+  document.getElementById('editPublished').checked = p.is_published;
+  document.getElementById('editShowNav').checked = p.show_in_nav;
+  document.getElementById('editModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.add('hidden');
+}
+
+async function savePage() {
+  const id = document.getElementById('editId').value;
+  const body = {
+    id,
+    title: document.getElementById('editTitle').value,
+    content: document.getElementById('editContent').value,
+    meta_title: document.getElementById('editMetaTitle').value,
+    meta_description: document.getElementById('editMetaDesc').value,
+    meta_keywords: document.getElementById('editMetaKeywords').value,
+    is_published: document.getElementById('editPublished').checked,
+    show_in_nav: document.getElementById('editShowNav').checked
+  };
+
+  try {
+    const res = await fetch('/api/admin/site-pages', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(body)
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Halaman berhasil diupdate');
+      closeEditModal();
+      loadPages();
+    } else {
+      showToast(result.error || 'Gagal menyimpan', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = type === 'error' ? 'error' : 'check_circle';
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+loadPages();
+</script>

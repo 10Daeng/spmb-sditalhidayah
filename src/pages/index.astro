@@ -1,0 +1,483 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabaseAdmin } from '../lib/supabase.js';
+import { Image } from 'astro:assets';
+
+let articles = [];
+try {
+  const { data } = await supabaseAdmin
+    .from('articles')
+    .select('id, title, excerpt, category, slug, created_at, featured_image_url')
+    .eq('status', 'published')
+    .order('created_at', { ascending: false })
+    .limit(3);
+  articles = data || [];
+} catch (e) { /* table might not exist yet */ }
+
+const categoryLabels = {
+  akademik: 'Akademik',
+  informasi: 'Informasi',
+  prestasi: 'Prestasi',
+  kegiatan: 'Kegiatan',
+  pengumuman: 'Pengumuman',
+};
+
+const defaultArticles = [
+  { id: 1, title: 'SPMB 2026/2027 Telah Dibuka!', excerpt: 'Indent Pendaftaran Murid Baru SDIT Al-Hidayah Sumenep untuk tahun ajaran 2026/2027 telah dibuka. Segera daftarkan putra-putri Anda.', category: 'pengumuman', slug: '#', created_at: new Date().toISOString(), featured_image_url: '' },
+  { id: 2, title: 'Program Tahfidz Al-Qur\'an Unggulan', excerpt: 'Program unggulan hafalan Al-Qur\'an dengan target minimal 5 Juz untuk lulusan SD, dibimbing oleh guru-guru bersertifikat.', category: 'akademik', slug: '#', created_at: new Date().toISOString(), featured_image_url: '' },
+  { id: 3, title: 'Juara Olimpiade Sains Kabupaten', excerpt: 'Siswa-siswi SDIT Al-Hidayah berhasil meraih prestasi membanggakan di Olimpiade Sains Tingkat Kabupaten Sumenep.', category: 'prestasi', slug: '#', created_at: new Date().toISOString(), featured_image_url: '' },
+];
+
+const displayArticles = articles.length > 0 ? articles : defaultArticles;
+---
+
+<Layout 
+  title="SDIT Al-Hidayah Sumenep - Mencetak Generasi Rabbani & Berprestasi"
+  description="Sekolah Dasar Islam Terpadu Al-Hidayah Sumenep membentuk generasi Qurani, berakhlak mulia, cerdas, dan siap bersaing di era global. SPMB 2026/2027 telah dibuka!"
+  image="/logo-sdit.png"
+>
+  <!-- ============================================ -->
+  <!-- HERO SECTION -->
+  <!-- ============================================ -->
+  <section class="relative overflow-hidden bg-gradient-to-br from-white via-blue-50/60 to-indigo-100/50">
+    <!-- Decorative blobs -->
+    <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-[#1e40af]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
+    <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-200/30 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4"></div>
+    <div class="absolute top-1/2 left-1/2 w-[300px] h-[300px] bg-emerald-100/20 rounded-full blur-3xl"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-10 lg:pt-24 lg:pb-16 relative z-10">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
+        <!-- Left Content -->
+        <div class="lg:col-span-6 flex flex-col items-start gap-5">
+          <span class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#1e40af]/10 border border-[#1e40af]/20">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-sm font-semibold uppercase tracking-wider text-[#1e40af]">SPMB 2026/2027 Dibuka</span>
+          </span>
+
+          <h1 class="text-4xl md:text-5xl lg:text-[56px] font-extrabold leading-[1.08] text-[#111c2d]" style="letter-spacing:-0.03em;">
+            Terwujudnya<br/>
+            Generasi Muslim<br/>
+            <span class="bg-gradient-to-r from-[#1e40af] via-[#4f46e5] to-[#7c3aed] bg-clip-text text-transparent">Berakhlak Mulia dan<br/>Berprestasi Optimal</span>
+          </h1>
+
+          <p class="text-lg text-[#64748b] max-w-lg leading-relaxed">
+            Bergabunglah bersama kami dalam lingkungan pendidikan Islam terpadu yang memadukan kurikulum nasional, tahfidz Al-Qur'an, dan teknologi modern.
+          </p>
+
+          <div class="flex flex-wrap items-center gap-4 pt-2">
+            <a href="/spmb" class="inline-flex items-center gap-2 px-7 py-4 bg-[#1e40af] text-white font-bold rounded-2xl hover:bg-[#1e3a8a] transition-all shadow-xl shadow-blue-600/25 hover:shadow-blue-600/40 hover:-translate-y-0.5">
+              <span class="material-symbols-outlined" style="font-size:20px;">how_to_reg</span>
+               Indent SPMB
+            </a>
+            <a href="#program" class="inline-flex items-center gap-2 px-7 py-4 bg-white border-2 border-[#e2e8f0] text-[#111c2d] font-bold rounded-2xl hover:border-[#1e40af] hover:bg-blue-50 transition-all">
+              <span class="material-symbols-outlined" style="font-size:20px;">explore</span>
+              Lihat Program
+            </a>
+          </div>
+
+          <!-- Trust badges -->
+          <div class="flex flex-wrap items-center gap-5 pt-6 border-t border-[#e2e8f0]/80 mt-2">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-emerald-500" style="font-size:20px;">verified</span>
+              <span class="text-sm font-semibold text-[#111c2d]">Akreditasi A</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-emerald-500" style="font-size:20px;">verified</span>
+              <span class="text-sm font-semibold text-[#111c2d]">Kurikulum Merdeka</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-emerald-500" style="font-size:20px;">verified</span>
+              <span class="text-sm font-semibold text-[#111c2d]">Full Day School</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Hero Visual -->
+        <div class="lg:col-span-6 relative">
+          <div class="relative">
+            <!-- Main card: Large gradient visual with overlay content -->
+            <div class="rounded-3xl overflow-hidden bg-gradient-to-br from-[#1e40af] via-[#312e81] to-[#1e1b4b] p-8 md:p-10 relative min-h-[380px] md:min-h-[440px]">
+              <!-- Pattern overlay -->
+              <div class="absolute inset-0 opacity-10" style="background-image: url('data:image/svg+xml,%3Csvg width=&quot;60&quot; height=&quot;60&quot; viewBox=&quot;0 0 60 60&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cg fill=&quot;none&quot; fill-rule=&quot;evenodd&quot;%3E%3Cg fill=&quot;%23ffffff&quot; fill-opacity=&quot;1&quot;%3E%3Cpath d=&quot;M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z&quot;/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+
+              <!-- Content inside the card -->
+              <div class="relative z-10 flex flex-col justify-between h-full">
+                <div>
+                  <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 border border-white/20 mb-6">
+                    <span class="material-symbols-outlined text-white" style="font-size:16px;">school</span>
+                    <span class="text-white text-xs font-semibold uppercase tracking-wider">SDIT Al-Hidayah</span>
+                  </div>
+                  <h2 class="text-2xl md:text-3xl font-bold text-white leading-tight mb-4" style="letter-spacing:-0.02em;">
+                    Pendidikan Islam Terpadu<br/>
+                    <span class="text-blue-200">Membentuk Generasi Qurani</span>
+                  </h2>
+                  <p class="text-blue-200/90 text-sm md:text-base leading-relaxed max-w-sm">
+                    Kurikulum nasional yang dipadukan dengan program tahfidz, character building, dan pembiasaan ibadah sehari-hari.
+                  </p>
+                </div>
+
+                <!-- Feature pills inside card -->
+                <div class="flex flex-wrap gap-2 mt-6">
+                  <span class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 border border-white/10 text-white text-xs font-medium">
+                    <span class="material-symbols-outlined" style="font-size:16px;">menu_book</span>
+                    Tahfidz Quran
+                  </span>
+                  <span class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 border border-white/10 text-white text-xs font-medium">
+                    <span class="material-symbols-outlined" style="font-size:16px;">language</span>
+                    Bilingual
+                  </span>
+                  <span class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 border border-white/10 text-white text-xs font-medium">
+                    <span class="material-symbols-outlined" style="font-size:16px;">code</span>
+                    Coding & Robotik
+                  </span>
+                  <span class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 border border-white/10 text-white text-xs font-medium">
+                    <span class="material-symbols-outlined" style="font-size:16px;">diversity_3</span>
+                    Character Building
+                  </span>
+                </div>
+              </div>
+
+              <!-- Decorative circles -->
+              <div class="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full"></div>
+              <div class="absolute -bottom-12 -left-12 w-48 h-48 bg-white/5 rounded-full"></div>
+            </div>
+
+            <!-- Floating stat card 1 -->
+            <div class="absolute -bottom-4 -left-4 md:-bottom-6 md:-left-6 bg-white p-4 rounded-2xl shadow-xl border border-[#e5e7eb] animate-float hidden md:flex items-center gap-3 z-20">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-white" style="font-size:24px;">star</span>
+              </div>
+              <div>
+                <p class="text-xs text-[#6b7280]">Nilai Rata-rata</p>
+                <p class="font-extrabold text-[#111c2d] text-xl leading-tight">92.5</p>
+              </div>
+            </div>
+
+            <!-- Floating stat card 2 -->
+            <div class="absolute -top-4 -right-4 md:-top-6 md:-right-6 bg-white p-4 rounded-2xl shadow-xl border border-[#e5e7eb] animate-float-delay hidden md:flex items-center gap-3 z-20">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-white" style="font-size:24px;">groups</span>
+              </div>
+              <div>
+                <p class="text-xs text-[#6b7280]">Siswa Aktif</p>
+                <p class="font-extrabold text-[#111c2d] text-xl leading-tight">480+</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="border-t border-[#e2e8f0]/80 bg-white/80 backdrop-blur-md relative z-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+          <div class="text-center group">
+            <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-100 transition-colors">
+              <span class="material-symbols-outlined text-[#1e40af]" style="font-size:28px;">groups</span>
+            </div>
+            <p class="text-3xl md:text-4xl font-extrabold text-[#111c2d]">480<span class="text-[#1e40af]">+</span></p>
+            <p class="text-sm text-[#64748b] mt-1 font-medium">Siswa Aktif</p>
+          </div>
+          <div class="text-center group">
+            <div class="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-indigo-100 transition-colors">
+              <span class="material-symbols-outlined text-[#4f46e5]" style="font-size:28px;">diversity_3</span>
+            </div>
+            <p class="text-3xl md:text-4xl font-extrabold text-[#111c2d]">28</p>
+            <p class="text-sm text-[#64748b] mt-1 font-medium">Guru & Staff</p>
+          </div>
+          <div class="text-center group">
+            <div class="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-emerald-100 transition-colors">
+              <span class="material-symbols-outlined text-[#059669]" style="font-size:28px;">workspace_premium</span>
+            </div>
+            <p class="text-3xl md:text-4xl font-extrabold text-[#111c2d]">A</p>
+            <p class="text-sm text-[#64748b] mt-1 font-medium">Akreditasi</p>
+          </div>
+          <div class="text-center group">
+            <div class="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-amber-100 transition-colors">
+              <span class="material-symbols-outlined text-[#d97706]" style="font-size:28px;">verified</span>
+            </div>
+            <p class="text-3xl md:text-4xl font-extrabold text-[#111c2d]">100<span class="text-[#1e40af]">%</span></p>
+            <p class="text-sm text-[#64748b] mt-1 font-medium">Kelulusan</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- PROGRAMS SECTION (dark bg) -->
+  <!-- ============================================ -->
+  <section id="program" class="bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] relative overflow-hidden">
+    <div class="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 relative z-10">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+        <!-- Left: Feature list -->
+        <div class="lg:col-span-7">
+          <span class="inline-flex items-center gap-2 text-sm font-semibold text-blue-400 uppercase tracking-wide mb-4">
+            <span class="material-symbols-outlined" style="font-size:18px;">rocket_launch</span>
+            Program Unggulan
+          </span>
+          <h2 class="text-3xl md:text-4xl font-extrabold text-white leading-tight mb-4" style="letter-spacing:-0.02em;">
+            Membangun Potensi<br/>Terbaik Setiap Siswa
+          </h2>
+          <p class="text-lg text-[#94a3b8] leading-relaxed mb-10 max-w-xl">
+            Kami menggabungkan kurikulum nasional terbaik dengan program Islam terpadu untuk mencetak generasi yang cerdas, berakhlak, dan siap bersaing.
+          </p>
+
+          <div class="space-y-5">
+            <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/30 flex items-center justify-center shrink-0 group-hover:from-blue-500/30 group-hover:to-blue-600/40 transition-all">
+                <span class="material-symbols-outlined text-blue-400" style="font-size:24px;">menu_book</span>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white mb-1">Tahfidz Al-Qur'an</h3>
+                <p class="text-sm text-[#94a3b8] leading-relaxed">Program unggulan hafalan Al-Qur'an dengan target minimal 5 Juz untuk lulusan SD, dibimbing guru bersertifikat tahfidz.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-indigo-600/30 flex items-center justify-center shrink-0 group-hover:from-indigo-500/30 group-hover:to-indigo-600/40 transition-all">
+                <span class="material-symbols-outlined text-indigo-400" style="font-size:24px;">computer</span>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white mb-1">Teknologi & Coding</h3>
+                <p class="text-sm text-[#94a3b8] leading-relaxed">Pengenalan teknologi sejak dini dengan kelas coding dasar, robotik, dan digital literacy untuk generasi digital.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/30 flex items-center justify-center shrink-0 group-hover:from-emerald-500/30 group-hover:to-emerald-600/40 transition-all">
+                <span class="material-symbols-outlined text-emerald-400" style="font-size:24px;">language</span>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white mb-1">Bilingual Class</h3>
+                <p class="text-sm text-[#94a3b8] leading-relaxed">Penerapan Bahasa Arab dan Inggris dalam percakapan sehari-hari di lingkungan sekolah untuk meningkatkan kompetensi global.</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/30 flex items-center justify-center shrink-0 group-hover:from-amber-500/30 group-hover:to-amber-600/40 transition-all">
+                <span class="material-symbols-outlined text-amber-400" style="font-size:24px;">favorite</span>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white mb-1">Character Building</h3>
+                <p class="text-sm text-[#94a3b8] leading-relaxed">Penanaman karakter Islami, adab, dan pembiasaan ibadah sepanjang hari dalam suasana full day school.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Stats card -->
+        <div class="lg:col-span-5">
+          <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-8 space-y-6">
+            <div class="text-center pb-6 border-b border-white/10">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1e40af] to-[#7c3aed] flex items-center justify-center mx-auto mb-4">
+                <span class="material-symbols-outlined text-white" style="font-size:32px;">school</span>
+              </div>
+              <h3 class="text-xl font-bold text-white mb-2">SDIT Al-Hidayah</h3>
+              <p class="text-sm text-[#94a3b8]">Mencetak Generasi Rabbani & Berprestasi</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="text-center p-4 rounded-2xl bg-white/5">
+                <p class="text-3xl font-extrabold text-white">25<span class="text-blue-400">+</span></p>
+                <p class="text-xs text-[#94a3b8] mt-1">Ekstrakurikuler</p>
+              </div>
+              <div class="text-center p-4 rounded-2xl bg-white/5">
+                <p class="text-3xl font-extrabold text-white">5<span class="text-emerald-400"> Juz</span></p>
+                <p class="text-xs text-[#94a3b8] mt-1">Target Tahfidz</p>
+              </div>
+              <div class="text-center p-4 rounded-2xl bg-white/5">
+                <p class="text-3xl font-extrabold text-white">92.5</p>
+                <p class="text-xs text-[#94a3b8] mt-1">Nilai Rata-rata</p>
+              </div>
+              <div class="text-center p-4 rounded-2xl bg-white/5">
+                <p class="text-3xl font-extrabold text-white">100<span class="text-amber-400">%</span></p>
+                <p class="text-xs text-[#94a3b8] mt-1">Kelulusan</p>
+              </div>
+            </div>
+
+            <a href="/spmb" class="flex items-center justify-center gap-2 w-full py-3.5 bg-[#1e40af] text-white font-bold rounded-xl hover:bg-[#1e3a8a] transition-colors shadow-lg">
+              <span class="material-symbols-outlined" style="font-size:18px;">how_to_reg</span>
+              Daftar Sekarang
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- FEATURES GRID (white bg) -->
+  <!-- ============================================ -->
+  <section class="bg-white relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-96 h-96 bg-blue-50 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+    <div class="absolute bottom-0 right-0 w-80 h-80 bg-indigo-50 rounded-full blur-3xl translate-x-1/3 translate-y-1/3"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 relative z-10">
+      <div class="text-center mb-14">
+        <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#1e40af] uppercase tracking-wide mb-3">
+          Mengapa Memilih Kami
+        </span>
+        <h2 class="text-3xl md:text-4xl font-extrabold text-[#111c2d]" style="letter-spacing:-0.02em;">Keunggulan SDIT Al-Hidayah</h2>
+        <p class="text-[#64748b] mt-3 max-w-2xl mx-auto">Kami memadukan pendidikan akademik berstandar nasional dengan pembinaan karakter Islami yang komprehensif.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="group bg-white p-7 rounded-2xl border border-[#e5e7eb] hover:border-[#1e40af]/20 hover:shadow-xl transition-all duration-300">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined text-[#1e40af]" style="font-size:28px;">mosque</span>
+          </div>
+          <h3 class="text-lg font-bold text-[#111c2d] mb-2">Integrasi Islam & Akademik</h3>
+          <p class="text-sm text-[#64748b] leading-relaxed">Kurikulum terpadu yang menggabungkan pembelajaran akademik dengan nilai-nilai Islam dalam kehidupan sehari-hari.</p>
+        </div>
+
+        <div class="group bg-white p-7 rounded-2xl border border-[#e5e7eb] hover:border-indigo-200 hover:shadow-xl transition-all duration-300">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-100 to-indigo-50 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined text-[#4f46e5]" style="font-size:28px;">psychology</span>
+          </div>
+          <h3 class="text-lg font-bold text-[#111c2d] mb-2">Pembelajaran Bermakna</h3>
+          <p class="text-sm text-[#64748b] leading-relaxed">Metode pembelajaran aktif dan berbasis proyek yang mendorong siswa berpikir kritis dan kreatif.</p>
+        </div>
+
+        <div class="group bg-white p-7 rounded-2xl border border-[#e5e7eb] hover:border-emerald-200 hover:shadow-xl transition-all duration-300">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined text-[#059669]" style="font-size:28px;">diversity_1</span>
+          </div>
+          <h3 class="text-lg font-bold text-[#111c2d] mb-2">Lingkungan Islami</h3>
+          <p class="text-sm text-[#64748b] leading-relaxed">Suasana sekolah yang kondusif dengan penanaman karakter, adab, dan pembiasaan ibadah sepanjang hari.</p>
+        </div>
+
+        <div class="group bg-white p-7 rounded-2xl border border-[#e5e7eb] hover:border-amber-200 hover:shadow-xl transition-all duration-300">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined text-[#d97706]" style="font-size:28px;">code</span>
+          </div>
+          <h3 class="text-lg font-bold text-[#111c2d] mb-2">Ekstrakurikuler Lengkap</h3>
+          <p class="text-sm text-[#64748b] leading-relaxed">Robotik, pramuka, seni, olahraga, dan 25+ kegiatan ekstrakurikuler untuk mengembangkan bakat siswa.</p>
+        </div>
+
+        <div class="group bg-white p-7 rounded-2xl border border-[#e5e7eb] hover:border-rose-200 hover:shadow-xl transition-all duration-300">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-100 to-rose-50 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined text-[#e11d48]" style="font-size:28px;">health_and_safety</span>
+          </div>
+          <h3 class="text-lg font-bold text-[#111c2d] mb-2">Full Day School</h3>
+          <p class="text-sm text-[#64748b] leading-relaxed">Program sekolah sehari penuh dengan jadwal terstruktur dari pagi hingga sore, memaksimalkan waktu belajar.</p>
+        </div>
+
+        <div class="group bg-white p-7 rounded-2xl border border-[#e5e7eb] hover:border-sky-200 hover:shadow-xl transition-all duration-300">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-100 to-sky-50 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+            <span class="material-symbols-outlined text-[#0284c7]" style="font-size:28px;">handshake</span>
+          </div>
+          <h3 class="text-lg font-bold text-[#111c2d] mb-2">Kemitraan Orang Tua</h3>
+          <p class="text-sm text-[#64748b] leading-relaxed">Kolaborasi erat antara sekolah dan orang tua untuk memantau perkembangan akademik dan karakter anak.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- NEWS SECTION (light bg) -->
+  <!-- ============================================ -->
+  <section class="bg-[#f8fafc]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-12">
+        <div>
+          <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-[#1e40af] uppercase tracking-wide mb-3">
+            <span class="material-symbols-outlined" style="font-size:18px;">newspaper</span>
+            Berita Terbaru
+          </span>
+          <h2 class="text-3xl md:text-4xl font-extrabold text-[#111c2d]" style="letter-spacing:-0.02em;">Informasi & Kegiatan</h2>
+          <p class="text-[#64748b] mt-2 max-w-lg">Berita dan artikel terbaru seputar kegiatan di SDIT Al-Hidayah Sumenep.</p>
+        </div>
+        <a href="/berita" class="hidden sm:inline-flex items-center gap-1.5 text-sm font-bold text-[#1e40af] hover:text-[#1e3a8a] transition-colors shrink-0">
+          Lihat Semua
+          <span class="material-symbols-outlined" style="font-size:16px;">arrow_forward</span>
+        </a>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {displayArticles.map((article) => {
+          const cat = article.category || 'informasi';
+          const catLabel = categoryLabels[cat] || 'Informasi';
+          const date = new Date(article.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+          return (
+            <article class="bg-white border border-[#e5e7eb] rounded-2xl overflow-hidden flex flex-col hover:border-[#1e40af]/20 hover:shadow-xl transition-all duration-300 group">
+              <div class="aspect-video w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-sky-50 relative overflow-hidden flex items-center justify-center">
+                {article.featured_image_url ? (
+                  <Image src={article.featured_image_url} alt={article.title} inferSize class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                ) : (
+                  <span class="material-symbols-outlined text-[#c7d2fe]" style="font-size:64px;">newspaper</span>
+                )}
+              </div>
+              <div class="p-5 flex flex-col flex-grow">
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-[#1e40af]/10 text-[#1e40af]">{catLabel}</span>
+                  <span class="text-xs text-[#94a3b8]">{date}</span>
+                </div>
+                <h3 class="text-base font-bold text-[#111c2d] mb-2 line-clamp-2 group-hover:text-[#1e40af] transition-colors">{article.title}</h3>
+                <p class="text-sm text-[#64748b] leading-relaxed mb-4 flex-grow line-clamp-2">{article.excerpt || ''}</p>
+                {article.slug && article.slug !== '#' ? (
+                  <a href={`/berita/${article.slug}`} class="inline-flex items-center gap-1 text-sm font-bold text-[#1e40af] hover:text-[#1e3a8a] transition-colors">
+                    Baca Selengkapnya
+                    <span class="material-symbols-outlined group-hover/link:translate-x-0.5 transition-transform" style="font-size:16px;">arrow_forward</span>
+                  </a>
+                ) : (
+                  <span class="text-sm font-medium text-[#94a3b8]">Segera hadir</span>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <div class="mt-10 text-center sm:hidden">
+        <a href="/berita" class="inline-flex items-center justify-center gap-1.5 w-full px-6 py-3.5 bg-white border-2 border-[#e5e7eb] text-[#111c2d] font-bold rounded-2xl hover:border-[#1e40af] transition-colors">
+          Lihat Semua Berita
+          <span class="material-symbols-outlined" style="font-size:18px;">arrow_forward</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- CTA SECTION (dark gradient) -->
+  <!-- ============================================ -->
+  <section class="relative overflow-hidden">
+    <div class="bg-gradient-to-br from-[#1e40af] via-[#312e81] to-[#1e1b4b] py-20 lg:py-28 relative">
+      <div class="absolute top-0 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-400/10 rounded-full blur-3xl"></div>
+      <div class="absolute top-1/2 left-1/2 w-[600px] h-[600px] bg-blue-400/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+
+      <div class="max-w-4xl mx-auto text-center px-4 relative z-10">
+        <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-semibold uppercase tracking-wider mb-6">
+          <span class="material-symbols-outlined" style="font-size:14px;">campaign</span>
+          SPMB Dibuka
+        </span>
+        <h2 class="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-5 leading-tight" style="letter-spacing:-0.02em;">
+          Siap Bergabung Menjadi<br/>Bagian Keluarga Besar Kami?
+        </h2>
+        <p class="text-blue-200 text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
+          Kuota terbatas untuk tahun ajaran 2026/2027. Segera daftarkan putra-putri Anda sekarang juga.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="/spmb" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#1e40af] font-bold rounded-2xl hover:bg-gray-100 transition-colors shadow-xl">
+            <span class="material-symbols-outlined" style="font-size:20px;">how_to_reg</span>
+             Indent SPMB Online
+          </a>
+          <a href="https://wa.me/628123456789" target="_blank" class="inline-flex items-center justify-center gap-2 px-8 py-4 border-2 border-white/30 text-white font-bold rounded-2xl hover:bg-white/10 transition-colors">
+            <span class="material-symbols-outlined" style="font-size:20px;">chat</span>
+            Hubungi via WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+  @keyframes floatDelay { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .animate-float { animation: float 6s ease-in-out infinite; }
+  .animate-float-delay { animation: floatDelay 5s ease-in-out 1s infinite; }
+  .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+</style>

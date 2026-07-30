@@ -1,0 +1,910 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { supabaseAdmin } from '../../lib/supabase.js';
+import { transformGDriveUrl } from '../../lib/gdrive.js';
+
+let articles = [];
+let stats = { total: 0, published: 0, draft: 0, hidden: 0 };
+
+try {
+  const { data, error } = await supabaseAdmin
+    .from('articles')
+    .select('*')
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  if (!error && data) {
+    articles = data;
+    stats.total = data.length;
+    stats.published = data.filter(a => a.status === 'published').length;
+    stats.draft = data.filter(a => a.status === 'draft').length;
+    stats.hidden = data.filter(a => a.status === 'hidden').length;
+  }
+} catch (e) { /* table might not exist yet */ }
+
+const formatDate = (d: string) => {
+  if (!d) return '-';
+  return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const statusConfig: Record<string, { bg: string; text: string; dot: string; label: string }> = {
+  published: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500', label: 'Published' },
+  draft: { bg: 'bg-gray-50', text: 'text-gray-700', dot: 'bg-gray-400', label: 'Draft' },
+  hidden: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: 'Hidden' },
+};
+
+const categoryIcon: Record<string, string> = {
+  Berita: 'newspaper',
+  Pengumuman: 'campaign',
+  Prestasi: 'emoji_events',
+  Kegiatan: 'celebration',
+  Akademik: 'school',
+  Informasi: 'info',
+};
+---
+
+<AdminLayout title="Berita & Artikel" activeMenu="berita">
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="card p-4">
+      <p class="text-xs text-gray-500 uppercase font-semibold">Total</p>
+      <p class="text-2xl font-bold text-gray-900">{stats.total}</p>
+    </div>
+    <div class="card p-4">
+      <p class="text-xs text-gray-500 uppercase font-semibold">Published</p>
+      <p class="text-2xl font-bold text-green-600">{stats.published}</p>
+    </div>
+    <div class="card p-4">
+      <p class="text-xs text-gray-500 uppercase font-semibold">Draft</p>
+      <p class="text-2xl font-bold text-gray-600">{stats.draft}</p>
+    </div>
+    <div class="card p-4">
+      <p class="text-xs text-gray-500 uppercase font-semibold">Hidden</p>
+      <p class="text-2xl font-bold text-amber-600">{stats.hidden}</p>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="card mb-6">
+    <div class="px-5 py-3 border-b border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="flex items-center gap-3 flex-wrap">
+        <button onclick="openEditor()" class="btn btn-primary text-sm">
+          <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+          Tulis Artikel
+        </button>
+        <select id="filter-status" onchange="filterArticles()" class="input !w-auto !py-2 !px-3 text-sm">
+          <option value="all">Semua Status</option>
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
+          <option value="hidden">Hidden</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <input type="text" id="search-input" placeholder="Cari artikel..." oninput="searchArticles()" class="input !w-48 !py-2 text-sm" />
+        <button onclick="setView('list')" id="btn-view-list" class="p-2 rounded-lg bg-gray-200 text-gray-800">
+          <span class="material-symbols-outlined" style="font-size:20px;">view_list</span>
+        </button>
+        <button onclick="setView('grid')" id="btn-view-grid" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100">
+          <span class="material-symbols-outlined" style="font-size:20px;">grid_view</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- List View -->
+  <div id="view-list" class="card overflow-hidden">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Judul</th>
+          <th>Kategori</th>
+          <th>Status</th>
+          <th>Tanggal</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="articles-tbody">
+        {articles.length === 0 ? (
+          <tr>
+            <td colspan="5" class="text-center text-gray-400 py-12">
+              <span class="material-symbols-outlined text-5xl text-gray-300 block mb-2">newspaper</span>
+              <p class="font-semibold text-gray-500">Belum ada artikel</p>
+              <p class="text-sm">Klik "Tulis Artikel" untuk memulai</p>
+            </td>
+          </tr>
+        ) : articles.map(article => {
+          const sc = statusConfig[article.status] || statusConfig.draft;
+          const icon = categoryIcon[article.category] || 'newspaper';
+          return (
+            <tr class="article-row" data-status={article.status} data-title={article.title?.toLowerCase()}>
+              <td>
+                <div class="flex items-start gap-3">
+                  {article.featured_image_url ? (
+                    <div class="w-12 h-9 bg-gray-100 rounded shrink-0 overflow-hidden">
+                        <img src={transformGDriveUrl(article.featured_image_url)} alt="" class="w-12 h-9 object-cover rounded shrink-0" />
+                    </div>
+                  ) : (
+                    <div class="w-12 h-9 bg-gradient-to-br from-blue-50 to-indigo-50 rounded flex items-center justify-center shrink-0">
+                      <span class="material-symbols-outlined text-blue-300" style="font-size:16px;">{icon}</span>
+                    </div>
+                  )}
+                  <div>
+                    <p class="font-medium text-gray-900 line-clamp-1 hover:text-blue-700 cursor-pointer" onclick={`editArticle('${article.id}')`}>{article.title}</p>
+                    <p class="text-xs text-gray-400">oleh {article.author_name || 'Admin'}</p>
+                  </div>
+                </div>
+              </td>
+              <td><span class="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-600 rounded border border-gray-200">{article.category}</span></td>
+              <td>
+                <span class={`badge ${sc.bg} ${sc.text}`}>
+                  <span class={`w-1.5 h-1.5 rounded-full ${sc.dot} inline-block`}></span>
+                  {sc.label}
+                </span>
+              </td>
+              <td><span class="text-sm text-gray-500">{formatDate(article.published_at || article.created_at)}</span></td>
+              <td>
+                <div class="flex items-center gap-1">
+                  <button onclick={`editArticle('${article.id}')`} class="p-1.5 text-gray-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                    <span class="material-symbols-outlined" style="font-size:18px;">edit</span>
+                  </button>
+                  <button onclick={`toggleStatus('${article.id}', '${article.status === 'published' ? 'hidden' : 'published'}')`} class="p-1.5 text-gray-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors" title={article.status === 'published' ? 'Sembunyikan' : 'Publish'}>
+                    <span class="material-symbols-outlined" style="font-size:18px;">{article.status === 'published' ? 'visibility_off' : 'publish'}</span>
+                  </button>
+                  <button onclick={`deleteArticle('${article.id}')`} class="p-1.5 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                    <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Grid View (hidden by default) -->
+  <div id="view-grid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {articles.map(article => {
+      const sc = statusConfig[article.status] || statusConfig.draft;
+      const icon = categoryIcon[article.category] || 'newspaper';
+      return (
+        <div class="card overflow-hidden hover:border-blue-200 transition-colors cursor-pointer group article-card" data-status={article.status} data-title={article.title?.toLowerCase()}>
+          {article.featured_image_url ? (
+            <div class="w-full h-36 bg-gray-200 overflow-hidden relative">
+                <img src={transformGDriveUrl(article.featured_image_url)} alt="" class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300" />
+            </div>
+          ) : (
+            <div class="w-full h-36 bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center">
+              <span class="material-symbols-outlined text-blue-200" style="font-size:40px;">{icon}</span>
+            </div>
+          )}
+          <div class="p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-600 rounded border border-gray-200">{article.category}</span>
+              <span class={`badge ${sc.bg} ${sc.text} text-[10px]`}>
+                <span class={`w-1.5 h-1.5 rounded-full ${sc.dot} inline-block`}></span>
+                {sc.label}
+              </span>
+            </div>
+            <h3 class="font-semibold text-gray-900 line-clamp-2 mb-1 group-hover:text-blue-700 transition-colors cursor-pointer" onclick={`editArticle('${article.id}')`}>{article.title}</h3>
+            <p class="text-sm text-gray-500 line-clamp-2">{article.excerpt}</p>
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+              <span class="text-xs text-gray-400">{formatDate(article.published_at || article.created_at)}</span>
+              <div class="flex gap-1" onclick="event.stopPropagation()">
+                <button onclick={`editArticle('${article.id}')`} class="p-1 text-gray-400 hover:text-blue-600"><span class="material-symbols-outlined" style="font-size:16px;">edit</span></button>
+                <button onclick={`deleteArticle('${article.id}')`} class="p-1 text-gray-400 hover:text-red-600"><span class="material-symbols-outlined" style="font-size:16px;">delete</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+
+  <!-- Editor Modal -->
+  <div id="editor-modal" class="hidden fixed inset-0 bg-black/50 z-50 overflow-auto">
+    <div class="bg-white min-h-screen">
+      <!-- Editor Header -->
+      <div class="sticky top-0 bg-white border-b border-gray-200 z-10">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <button onclick="closeEditor()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <span class="material-symbols-outlined" style="font-size:20px;">arrow_back</span>
+            </button>
+            <h2 id="editor-title" class="font-semibold text-gray-900">Artikel Baru</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="editor-status" class="input !w-auto !py-2 text-sm">
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="hidden">Hidden</option>
+            </select>
+            <button onclick="saveArticle(false)" id="btn-save" class="btn btn-outline text-sm">
+              <span class="material-symbols-outlined" style="font-size:16px;">save</span>
+              Simpan
+            </button>
+            <button onclick="saveArticle(true)" id="btn-publish" class="btn btn-primary text-sm">
+              <span class="material-symbols-outlined" style="font-size:16px;">publish</span>
+              Publish
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Editor Content -->
+      <div class="max-w-6xl mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          <!-- Main Editor -->
+          <div class="xl:col-span-3 space-y-4">
+            <input type="hidden" id="editor-id" value="" />
+            <input type="text" id="editor-title-input" class="w-full text-2xl font-bold border-0 border-b-2 border-gray-200 focus:border-blue-600 outline-none py-3 placeholder-gray-300" placeholder="Judul Artikel..." />
+
+            <!-- Toolbar -->
+            <div class="border border-gray-200 rounded-t-xl overflow-hidden" id="editor-toolbar">
+              <div class="bg-gray-50 border-b border-gray-200 px-3 py-1.5 flex items-center gap-1 flex-wrap">
+                <!-- Paragraph Format -->
+                <select data-cmd="formatBlock" class="toolbar-select text-xs bg-white border border-gray-300 rounded px-2 py-1 mr-1" title="Format">
+                  <option value="<p>">Paragraph</option>
+                  <option value="<h2>">Heading 2</option>
+                  <option value="<h3>">Heading 3</option>
+                  <option value="<h4>">Heading 4</option>
+                  <option value="<blockquote>">Quote</option>
+                  <option value="<pre>">Code</option>
+                </select>
+                <div class="w-px h-4 bg-gray-300 mx-0.5"></div>
+                <!-- Font Size -->
+                <select onchange="execCmd('fontSize', this.value); this.selectedIndex=0;" class="text-xs bg-white border border-gray-300 rounded px-2 py-1 mr-1" title="Font Size">
+                  <option value="" selected>Size</option>
+                  <option value="1">Kecil</option>
+                  <option value="3">Normal</option>
+                  <option value="5">Besar</option>
+                  <option value="7">Sangat Besar</option>
+                </select>
+                <div class="w-px h-4 bg-gray-300 mx-0.5"></div>
+                <!-- Bold Italic Underline Strikethrough -->
+                <button type="button" data-cmd="bold" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Bold"><span class="material-symbols-outlined text-base">format_bold</span></button>
+                <button type="button" data-cmd="italic" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Italic"><span class="material-symbols-outlined text-base">format_italic</span></button>
+                <button type="button" data-cmd="underline" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Underline"><span class="material-symbols-outlined text-base">format_underlined</span></button>
+                <button type="button" data-cmd="strikeThrough" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Strikethrough"><span class="material-symbols-outlined text-base">format_strikethrough</span></button>
+                <div class="w-px h-4 bg-gray-300 mx-0.5"></div>
+                <!-- Text Color -->
+                <button type="button" onclick="execCmd('foreColor','#000000')" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Black"><span class="material-symbols-outlined text-base" style="color:#000">format_color_text</span></button>
+                <button type="button" onclick="execCmd('foreColor','#dc2626')" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Red"><span class="material-symbols-outlined text-base" style="color:#dc2626">format_color_text</span></button>
+                <button type="button" onclick="execCmd('foreColor','#2563eb')" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Blue"><span class="material-symbols-outlined text-base" style="color:#2563eb">format_color_text</span></button>
+                <button type="button" onclick="execCmd('foreColor','#16a34a')" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Green"><span class="material-symbols-outlined text-base" style="color:#16a34a">format_color_text</span></button>
+                <div class="w-px h-4 bg-gray-300 mx-0.5"></div>
+                <!-- Sub / Superscript -->
+                <button type="button" data-cmd="subscript" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Subscript"><span class="material-symbols-outlined text-base">subscript</span></button>
+                <button type="button" data-cmd="superscript" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Superscript"><span class="material-symbols-outlined text-base">superscript</span></button>
+                <div class="w-px h-4 bg-gray-300 mx-0.5"></div>
+                <!-- Align -->
+                <button type="button" data-cmd="justifyLeft" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Align Left"><span class="material-symbols-outlined text-base">format_align_left</span></button>
+                <button type="button" data-cmd="justifyCenter" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Align Center"><span class="material-symbols-outlined text-base">format_align_center</span></button>
+                <button type="button" data-cmd="justifyRight" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Align Right"><span class="material-symbols-outlined text-base">format_align_right</span></button>
+                <button type="button" data-cmd="justifyFull" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Justify"><span class="material-symbols-outlined text-base">format_align_justify</span></button>
+                <div class="w-px h-4 bg-gray-300 mx-0.5"></div>
+                <!-- Lists & Indent -->
+                <button type="button" data-cmd="insertUnorderedList" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Bullet List"><span class="material-symbols-outlined text-base">format_list_bulleted</span></button>
+                <button type="button" data-cmd="insertOrderedList" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Numbered List"><span class="material-symbols-outlined text-base">format_list_numbered</span></button>
+                <button type="button" data-cmd="outdent" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Decrease Indent"><span class="material-symbols-outlined text-base">format_indent_decrease</span></button>
+                <button type="button" data-cmd="indent" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Increase Indent"><span class="material-symbols-outlined text-base">format_indent_increase</span></button>
+                <div class="w-px h-4 bg-gray-300 mx-0.5"></div>
+                <!-- Line Height & Spacing -->
+                <button type="button" onclick="setLineHeight('1.4')" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded text-[10px] font-bold" title="Line Height Tight">1.4</button>
+                <button type="button" onclick="setLineHeight('1.8')" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded text-[10px] font-bold" title="Line Height Normal">1.8</button>
+                <button type="button" onclick="setLineHeight('2.2')" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded text-[10px] font-bold" title="Line Height Loose">2.2</button>
+                <button type="button" onclick="setParagraphSpacing('1em')" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Paragraph Spacing"><span class="material-symbols-outlined text-base">format_line_spacing</span></button>
+                <div class="w-px h-4 bg-gray-300 mx-0.5"></div>
+                <!-- Insert -->
+                <button type="button" onclick="insertLink()" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Insert Link"><span class="material-symbols-outlined text-base">link</span></button>
+                <button type="button" onclick="insertImage()" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Insert Image"><span class="material-symbols-outlined text-base">image</span></button>
+                <button type="button" onclick="insertTable()" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Insert Table"><span class="material-symbols-outlined text-base">table</span></button>
+                <div class="w-px h-4 bg-gray-300 mx-0.5"></div>
+                <!-- Remove Format -->
+                <button type="button" data-cmd="removeFormat" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Remove Formatting"><span class="material-symbols-outlined text-base">format_clear</span></button>
+                <div class="w-px h-4 bg-gray-300 mx-0.5"></div>
+                <!-- Undo / Redo -->
+                <button type="button" data-cmd="undo" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Undo"><span class="material-symbols-outlined text-base">undo</span></button>
+                <button type="button" data-cmd="redo" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Redo"><span class="material-symbols-outlined text-base">redo</span></button>
+                <div class="w-px h-4 bg-gray-300 mx-0.5"></div>
+                <!-- Fullscreen & Source -->
+                <button type="button" onclick="toggleFullscreen()" id="btn-fullscreen" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="Fullscreen"><span class="material-symbols-outlined text-base">fullscreen</span></button>
+                <button type="button" onclick="toggleSource()" id="btn-source" class="toolbar-btn w-7 h-7 flex items-center justify-center hover:bg-gray-200 rounded" title="HTML Source"><span class="material-symbols-outlined text-base">code</span></button>
+              </div>
+            </div>
+
+            <!-- Editor Area -->
+            <div id="editor-content" contenteditable="true" class="min-h-[400px] border border-t-0 border-gray-200 rounded-b-xl p-6 focus:outline-none focus:border-blue-600 editor-styled" style="min-height:500px" data-placeholder="Tulis konten artikel di sini..."></div>
+
+            <!-- Status Bar -->
+            <div class="flex items-center justify-between px-3 py-1.5 border border-t-0 border-gray-200 rounded-b-xl bg-gray-50 text-xs text-gray-500">
+              <div class="flex items-center gap-3">
+                <span id="word-count">0 kata</span>
+                <span id="char-count">0 karakter</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="editor-mode">WYSIWYG</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="space-y-4">
+            <div class="card p-4">
+              <h3 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined" style="font-size:18px;">image</span>
+                Gambar Utama
+              </h3>
+              <div id="image-preview" class="hidden relative mb-3">
+                <img id="image-preview-img" src="" alt="" class="w-full h-36 object-cover rounded-lg" />
+                <button onclick="clearImage()" class="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600">
+                  <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+                </button>
+              </div>
+              <div id="image-input-area">
+                <div class="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50 transition-colors relative" onclick="document.getElementById('editor-image-file').click()">
+                  <span class="material-symbols-outlined text-gray-300 block mb-1" style="font-size:32px;">add_photo_alternate</span>
+                  <p class="text-xs text-gray-400 mb-2" id="upload-text">Klik untuk upload gambar</p>
+                  <input type="file" id="editor-image-file" class="hidden" accept="image/*" onchange="handleImageUpload(this)" />
+                  <input type="hidden" id="editor-image" />
+                </div>
+              </div>
+            </div>
+
+            <div class="card p-4">
+              <h3 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined" style="font-size:18px;">category</span>
+                Kategori
+              </h3>
+              <select id="editor-category" class="input">
+                <option value="Berita">Berita</option>
+                <option value="Pengumuman">Pengumuman</option>
+                <option value="Prestasi">Prestasi</option>
+                <option value="Kegiatan">Kegiatan</option>
+                <option value="Akademik">Akademik</option>
+                <option value="Informasi">Informasi</option>
+              </select>
+            </div>
+
+            <div class="card p-4">
+              <h3 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined" style="font-size:18px;">description</span>
+                Ringkasan
+              </h3>
+              <textarea id="editor-excerpt" rows="3" class="input text-sm resize-none" placeholder="Ringkasan singkat artikel..."></textarea>
+            </div>
+
+            <!-- SEO Panel -->
+            <div class="card p-4 border-blue-100">
+              <h3 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <span class="material-symbols-outlined text-blue-500" style="font-size:18px;">search</span>
+                SEO / Meta Tag
+              </h3>
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">URL Slug</label>
+                  <input type="text" id="editor-slug" class="input w-full text-sm font-mono" placeholder="judul-artikel-anda" />
+                  <p class="text-[10px] text-gray-400 mt-0.5">Auto-generate jika kosong</p>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">Meta Title</label>
+                  <input type="text" id="editor-meta-title" class="input w-full text-sm" placeholder="Judul untuk Google..." maxlength="60" />
+                  <p class="text-[10px] text-gray-400 mt-0.5" id="meta-title-count">0 / 60 karakter</p>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">Meta Description</label>
+                  <textarea id="editor-meta-desc" rows="3" class="input w-full text-sm resize-none" placeholder="Deskripsi untuk Google..." maxlength="160"></textarea>
+                  <p class="text-[10px] text-gray-400 mt-0.5" id="meta-desc-count">0 / 160 karakter</p>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">Meta Keywords</label>
+                  <input type="text" id="editor-meta-keywords" class="input w-full text-sm" placeholder="keyword1, keyword2, keyword3" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">OG Image (Facebook/Twitter)</label>
+                  <input type="url" id="editor-og-image" class="input w-full text-sm" placeholder="https://..." />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</AdminLayout>
+
+<style is:global>
+  [contenteditable]:empty:before { content: attr(data-placeholder); color: #9ca3af; pointer-events: none; }
+  .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .editor-styled p { margin-bottom: 1em; line-height: 1.8; }
+  .editor-styled h2 { margin-top: 1.2em; margin-bottom: 0.6em; line-height: 1.4; font-size: 1.5em; font-weight: 700; }
+  .editor-styled h3 { margin-top: 1em; margin-bottom: 0.5em; line-height: 1.4; font-size: 1.25em; font-weight: 600; }
+  .editor-styled h4 { margin-top: 0.8em; margin-bottom: 0.4em; line-height: 1.4; font-size: 1.1em; font-weight: 600; }
+  .editor-styled blockquote { margin: 1em 0; padding: 0.5em 1em; border-left: 4px solid #e5e7eb; background: #f9fafb; font-style: italic; }
+  .editor-styled ul, .editor-styled ol { margin-bottom: 1em; padding-left: 1.5em; }
+  .editor-styled li { margin-bottom: 0.25em; }
+  .editor-styled table { margin: 1em 0; }
+</style>
+
+<script is:inline>
+  let currentView = 'list';
+  let editingId = null;
+
+  function setView(view) {
+    currentView = view;
+    const listView = document.getElementById('view-list');
+    const gridView = document.getElementById('view-grid');
+    const btnList = document.getElementById('btn-view-list');
+    const btnGrid = document.getElementById('btn-view-grid');
+
+    if (view === 'grid') {
+      listView?.classList.add('hidden');
+      gridView?.classList.remove('hidden');
+      gridView?.classList.add('grid');
+      btnList?.classList.remove('bg-gray-200', 'text-gray-800');
+      btnList?.classList.add('text-gray-500');
+      btnGrid?.classList.add('bg-gray-200', 'text-gray-800');
+      btnGrid?.classList.remove('text-gray-500');
+    } else {
+      listView?.classList.remove('hidden');
+      gridView?.classList.add('hidden');
+      gridView?.classList.remove('grid');
+      btnGrid?.classList.remove('bg-gray-200', 'text-gray-800');
+      btnGrid?.classList.add('text-gray-500');
+      btnList?.classList.add('bg-gray-200', 'text-gray-800');
+      btnList?.classList.remove('text-gray-500');
+    }
+  }
+
+  function filterArticles() {
+    const status = document.getElementById('filter-status')?.value;
+    const rows = document.querySelectorAll('.article-row');
+    const cards = document.querySelectorAll('.article-card');
+    const filter = status === 'all' ? '' : status;
+    rows.forEach(row => { row.style.display = (!filter || row.dataset.status === filter) ? '' : 'none'; });
+    cards.forEach(card => { card.style.display = (!filter || card.dataset.status === filter) ? '' : 'none'; });
+  }
+
+  function searchArticles() {
+    const query = (document.getElementById('search-input')?.value || '').toLowerCase();
+    const rows = document.querySelectorAll('.article-row');
+    const cards = document.querySelectorAll('.article-card');
+    rows.forEach(row => { row.style.display = (!query || row.dataset.title?.includes(query)) ? '' : 'none'; });
+    cards.forEach(card => { card.style.display = (!query || card.dataset.title?.includes(query)) ? '' : 'none'; });
+  }
+
+  function openEditor() {
+    editingId = null;
+    document.getElementById('editor-id').value = '';
+    document.getElementById('editor-title-input').value = '';
+    document.getElementById('editor-content').innerHTML = '<p><br></p>';
+    document.getElementById('editor-excerpt').value = '';
+    document.getElementById('editor-category').value = 'Berita';
+    document.getElementById('editor-status').value = 'draft';
+    document.getElementById('editor-image').value = '';
+    clearImage();
+    // Clear SEO fields
+    document.getElementById('editor-slug').value = '';
+    document.getElementById('editor-meta-title').value = '';
+    document.getElementById('editor-meta-desc').value = '';
+    document.getElementById('editor-meta-keywords').value = '';
+    document.getElementById('editor-og-image').value = '';
+    updateMetaCounters();
+    document.getElementById('editor-title').textContent = 'Artikel Baru';
+    document.getElementById('editor-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    updateWordCount();
+  }
+
+  function editArticle(id) {
+    // Fetch article data and populate editor
+    fetch(`/api/admin/articles?id=${encodeURIComponent(id)}`, { headers: { 'Content-Type': 'application/json' } })
+      .then(r => r.json())
+      .then(result => {
+        if (!result.success || !result.data) { alert('Gagal memuat artikel'); return; }
+        const article = result.data;
+        editingId = article.id;
+        document.getElementById('editor-id').value = article.id;
+        document.getElementById('editor-title-input').value = article.title || '';
+        var contentHtml = article.content || '';
+        if (!contentHtml || contentHtml === '<br>' || contentHtml === '<br/>') contentHtml = '<p><br></p>';
+        document.getElementById('editor-content').innerHTML = contentHtml;
+        document.getElementById('editor-excerpt').value = article.excerpt || '';
+        document.getElementById('editor-category').value = article.category || 'Berita';
+        document.getElementById('editor-status').value = article.status || 'draft';
+        document.getElementById('editor-title').textContent = 'Edit Artikel';
+        if (article.featured_image_url) {
+          document.getElementById('editor-image').value = article.featured_image_url;
+          previewImage();
+        } else { clearImage(); }
+        // SEO fields
+        document.getElementById('editor-slug').value = article.slug || '';
+        document.getElementById('editor-meta-title').value = article.meta_title || '';
+        document.getElementById('editor-meta-desc').value = article.meta_description || '';
+        document.getElementById('editor-meta-keywords').value = article.meta_keywords || '';
+        document.getElementById('editor-og-image').value = article.og_image || '';
+        updateMetaCounters();
+        document.getElementById('editor-modal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        updateWordCount();
+      })
+      .catch(err => { console.error(err); alert('Error memuat artikel'); });
+  }
+
+  function closeEditor() {
+    document.getElementById('editor-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  function saveArticle(publishNow) {
+    const title = document.getElementById('editor-title-input')?.value;
+    const content = document.getElementById('editor-content')?.innerHTML;
+    if (!title || !content) { alert('Judul dan konten wajib diisi!'); return; }
+
+    const btn = publishNow ? document.getElementById('btn-publish') : document.getElementById('btn-save');
+    btn.disabled = true;
+    btn.textContent = 'Menyimpan...';
+
+    const payload = {
+      title,
+      content,
+      excerpt: document.getElementById('editor-excerpt')?.value || content.replace(/<[^>]*>/g, '').substring(0, 200) + '...',
+      category: document.getElementById('editor-category')?.value || 'Berita',
+      status: publishNow ? 'published' : (document.getElementById('editor-status')?.value || 'draft'),
+      featured_image_url: document.getElementById('editor-image')?.value || '',
+      author_name: 'Admin',
+      slug: document.getElementById('editor-slug')?.value || '',
+      meta_title: document.getElementById('editor-meta-title')?.value || '',
+      meta_description: document.getElementById('editor-meta-desc')?.value || '',
+      meta_keywords: document.getElementById('editor-meta-keywords')?.value || '',
+      og_image: document.getElementById('editor-og-image')?.value || '',
+    };
+
+    if (editingId) payload.id = editingId;
+
+    fetch('/api/admin/articles', {
+      method: editingId ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(result => {
+      if (result.success) {
+        alert(editingId ? 'Artikel berhasil diupdate!' : 'Artikel berhasil dibuat!');
+        closeEditor();
+        location.reload();
+      } else { alert('Error: ' + result.error); }
+    })
+    .catch(err => { alert('Error: ' + err.message); })
+    .finally(() => { btn.disabled = false; btn.textContent = publishNow ? 'Publish' : 'Simpan'; });
+  }
+
+  function toggleStatus(id, newStatus) {
+    fetch('/api/admin/articles', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status: newStatus })
+    })
+    .then(r => r.json())
+    .then(result => { if (result.success) location.reload(); })
+    .catch(err => console.error(err));
+  }
+
+  function deleteArticle(id) {
+    if (!confirm('Yakin ingin menghapus artikel ini?')) return;
+    fetch(`/api/admin/articles?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+      .then(r => r.json())
+      .then(result => { if (result.success) location.reload(); })
+      .catch(err => console.error(err));
+  }
+
+  function ensureParagraph(editor) {
+    if (!editor.innerHTML || editor.innerHTML === '<br>' || editor.innerHTML === '') {
+      editor.innerHTML = '<p><br></p>';
+    }
+  }
+
+  function execCmd(cmd, val) {
+    var editor = document.getElementById('editor-content');
+    if (!editor) return;
+    if (editor.getAttribute('data-mode') === 'source') return; // disable in source mode
+
+    editor.focus();
+    ensureParagraph(editor);
+
+    // For list commands, ensure selection is in a block element
+    if (cmd === 'insertUnorderedList' || cmd === 'insertOrderedList') {
+      var sel = window.getSelection();
+      if (sel.rangeCount > 0) {
+        var node = sel.getRangeAt(0).commonAncestorContainer;
+        if (node.nodeType === 3) node = node.parentNode; // text node -> parent
+        var inBlock = false;
+        var test = node;
+        while (test && test !== editor) {
+          if (/^(P|DIV|H[1-6]|BLOCKQUOTE|PRE)$/i.test(test.tagName)) { inBlock = true; break; }
+          test = test.parentNode;
+        }
+        if (!inBlock) {
+          // Wrap current line in <p>
+          document.execCommand('formatBlock', false, '<p>');
+        }
+      }
+    }
+
+    var value = val || false;
+    try {
+      var ok = document.execCommand(cmd, false, value);
+      if (!ok) console.warn('execCommand failed:', cmd, value);
+    } catch (e) {
+      console.error('execCommand error:', cmd, e);
+    }
+    updateActiveStates();
+    updateWordCount();
+  }
+
+  function insertLink() {
+    var editor = document.getElementById('editor-content');
+    if (!editor || editor.getAttribute('data-mode') === 'source') return;
+    editor.focus();
+    var url = prompt('Masukkan URL:');
+    if (url) {
+      try { document.execCommand('createLink', false, url); } catch (e) { console.error(e); }
+    }
+    updateWordCount();
+  }
+
+  function insertImage() {
+    var editor = document.getElementById('editor-content');
+    if (!editor || editor.getAttribute('data-mode') === 'source') return;
+    editor.focus();
+    var url = prompt('Masukkan URL gambar:');
+    if (url) {
+      try { document.execCommand('insertImage', false, url); } catch (e) { console.error(e); }
+    }
+    updateWordCount();
+  }
+
+  function insertTable() {
+    var editor = document.getElementById('editor-content');
+    if (!editor || editor.getAttribute('data-mode') === 'source') return;
+    editor.focus();
+    var rows = prompt('Jumlah baris:', '3');
+    if (!rows) return;
+    var cols = prompt('Jumlah kolom:', '3');
+    if (!cols) return;
+    var html = '<table class="w-full border-collapse border border-gray-300 my-4"><tbody>';
+    for (var r = 0; r < parseInt(rows); r++) {
+      html += '<tr>';
+      for (var c = 0; c < parseInt(cols); c++) {
+        html += '<td class="border border-gray-300 p-2">Sel ' + (r + 1) + '-' + (c + 1) + '</td>';
+      }
+      html += '</tr>';
+    }
+    html += '</tbody></table><p><br></p>';
+    document.execCommand('insertHTML', false, html);
+    updateWordCount();
+  }
+
+  // Line height & paragraph spacing
+  function setLineHeight(height) {
+    var editor = document.getElementById('editor-content');
+    if (!editor || editor.getAttribute('data-mode') === 'source') return;
+    editor.focus();
+    var sel = window.getSelection();
+    if (sel.rangeCount > 0) {
+      var node = sel.getRangeAt(0).commonAncestorContainer;
+      if (node.nodeType === 3) node = node.parentNode;
+      var target = node;
+      while (target && target !== editor && !/^(P|DIV|H[1-6]|BLOCKQUOTE|PRE|LI)$/i.test(target.tagName)) {
+        target = target.parentNode;
+      }
+      if (target && target !== editor) {
+        target.style.lineHeight = height;
+      }
+    }
+    updateWordCount();
+  }
+
+  function setParagraphSpacing(margin) {
+    var editor = document.getElementById('editor-content');
+    if (!editor || editor.getAttribute('data-mode') === 'source') return;
+    editor.focus();
+    var sel = window.getSelection();
+    if (sel.rangeCount > 0) {
+      var node = sel.getRangeAt(0).commonAncestorContainer;
+      if (node.nodeType === 3) node = node.parentNode;
+      var target = node;
+      while (target && target !== editor && !/^(P|DIV|H[1-6]|BLOCKQUOTE|PRE|LI)$/i.test(target.tagName)) {
+        target = target.parentNode;
+      }
+      if (target && target !== editor) {
+        target.style.marginTop = margin;
+        target.style.marginBottom = margin;
+      }
+    }
+    updateWordCount();
+  }
+
+  // Fullscreen toggle
+  var isFullscreen = false;
+  function toggleFullscreen() {
+    var modal = document.getElementById('editor-modal');
+    var btn = document.getElementById('btn-fullscreen');
+    if (!modal) return;
+    isFullscreen = !isFullscreen;
+    if (isFullscreen) {
+      modal.classList.add('z-[100]');
+      if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-base">fullscreen_exit</span>';
+    } else {
+      modal.classList.remove('z-[100]');
+      if (btn) btn.innerHTML = '<span class="material-symbols-outlined text-base">fullscreen</span>';
+    }
+  }
+
+  // Meta counters
+  function updateMetaCounters() {
+    var mt = document.getElementById('editor-meta-title');
+    var md = document.getElementById('editor-meta-desc');
+    if (mt) document.getElementById('meta-title-count').textContent = (mt.value.length || 0) + ' / 60 karakter';
+    if (md) document.getElementById('meta-desc-count').textContent = (md.value.length || 0) + ' / 160 karakter';
+  }
+
+  // Source code toggle
+  var sourceMode = false;
+  var htmlCache = '';
+  function toggleSource() {
+    var editor = document.getElementById('editor-content');
+    if (!editor) return;
+    sourceMode = !sourceMode;
+    var btn = document.getElementById('btn-source');
+    if (sourceMode) {
+      htmlCache = editor.innerHTML;
+      editor.textContent = htmlCache;
+      editor.setAttribute('data-mode', 'source');
+      if (btn) btn.classList.add('bg-blue-100', 'text-blue-700');
+      document.getElementById('editor-mode').textContent = 'HTML Source';
+    } else {
+      editor.innerHTML = editor.textContent;
+      editor.removeAttribute('data-mode');
+      if (btn) btn.classList.remove('bg-blue-100', 'text-blue-700');
+      document.getElementById('editor-mode').textContent = 'WYSIWYG';
+    }
+    updateWordCount();
+  }
+
+  // Word & char counter
+  function updateWordCount() {
+    var editor = document.getElementById('editor-content');
+    if (!editor) return;
+    var text = editor.getAttribute('data-mode') === 'source' ? editor.textContent : editor.innerText || '';
+    var words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    var chars = text.length;
+    document.getElementById('word-count').textContent = words + ' kata';
+    document.getElementById('char-count').textContent = chars + ' karakter';
+  }
+
+  // Active toolbar state
+  function updateActiveStates() {
+    var editor = document.getElementById('editor-content');
+    if (!editor || editor.getAttribute('data-mode') === 'source') return;
+    document.querySelectorAll('.toolbar-btn[data-cmd]').forEach(function(btn) {
+      var cmd = btn.dataset.cmd;
+      if (!cmd) return;
+      var active = false;
+      try { active = document.queryCommandState(cmd); } catch (e) {}
+      if (active) {
+        btn.classList.add('bg-blue-100', 'text-blue-700');
+      } else {
+        btn.classList.remove('bg-blue-100', 'text-blue-700');
+      }
+    });
+    // Update paragraph dropdown
+    var select = document.querySelector('.toolbar-select[data-cmd="formatBlock"]');
+    if (select) {
+      var format = '';
+      try { format = document.queryCommandValue('formatBlock'); } catch (e) {}
+      var val = format ? '<' + format.toLowerCase().replace(/[<>]/g, '') + '>' : '<p>';
+      for (var i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === val) { select.selectedIndex = i; break; }
+      }
+    }
+  }
+
+  // Wire up toolbar buttons using mousedown to prevent losing focus
+  document.querySelectorAll('.toolbar-btn[data-cmd]').forEach(function(btn) {
+    btn.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      var cmd = btn.dataset.cmd;
+      var val = btn.dataset.val;
+      execCmd(cmd, val);
+    });
+  });
+
+  // Wire up paragraph dropdown
+  var formatSelect = document.querySelector('.toolbar-select[data-cmd="formatBlock"]');
+  if (formatSelect) {
+    formatSelect.addEventListener('mousedown', function(e) {
+      // allow normal dropdown behavior, but handle change
+    });
+    formatSelect.addEventListener('change', function(e) {
+      var editor = document.getElementById('editor-content');
+      if (editor) editor.focus();
+      execCmd('formatBlock', e.target.value);
+    });
+  }
+
+  // Update active states & word count on editor events
+  var editorEl = document.getElementById('editor-content');
+  if (editorEl) {
+    editorEl.addEventListener('keyup', function() { updateActiveStates(); updateWordCount(); });
+    editorEl.addEventListener('mouseup', function() { updateActiveStates(); updateWordCount(); });
+    editorEl.addEventListener('input', updateWordCount);
+    updateWordCount();
+  }
+
+  // Meta field counters
+  var metaTitleEl = document.getElementById('editor-meta-title');
+  var metaDescEl = document.getElementById('editor-meta-desc');
+  if (metaTitleEl) metaTitleEl.addEventListener('input', updateMetaCounters);
+  if (metaDescEl) metaDescEl.addEventListener('input', updateMetaCounters);
+
+  async function handleImageUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    
+    document.getElementById('upload-text').textContent = 'Mengunggah...';
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const res = await fetch('/api/admin/upload-image', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        document.getElementById('editor-image').value = data.url;
+        previewImage();
+        document.getElementById('upload-text').textContent = 'Upload berhasil!';
+      } else {
+        alert('Gagal mengunggah: ' + data.error);
+        document.getElementById('upload-text').textContent = 'Klik untuk upload gambar';
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+      document.getElementById('upload-text').textContent = 'Klik untuk upload gambar';
+    }
+  }
+
+  function previewImage() {
+    let url = document.getElementById('editor-image')?.value;
+    const preview = document.getElementById('image-preview');
+    const inputArea = document.getElementById('image-input-area');
+    const img = document.getElementById('image-preview-img');
+    
+    if (url) { 
+      const fileIdMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileIdMatch && fileIdMatch[1]) url = 'https://drive.google.com/uc?export=view&id=' + fileIdMatch[1];
+      const openIdMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+      if (openIdMatch && openIdMatch[1]) url = 'https://drive.google.com/uc?export=view&id=' + openIdMatch[1];
+      
+      img.src = url; 
+      preview?.classList.remove('hidden'); 
+      inputArea?.classList.add('hidden'); 
+    }
+  }
+  function clearImage() {
+    document.getElementById('editor-image').value = '';
+    const fileInput = document.getElementById('editor-image-file');
+    if (fileInput) fileInput.value = '';
+    const uploadText = document.getElementById('upload-text');
+    if (uploadText) uploadText.textContent = 'Klik untuk upload gambar';
+    document.getElementById('image-preview')?.classList.add('hidden');
+    document.getElementById('image-input-area')?.classList.remove('hidden');
+    document.getElementById('image-preview-img').src = '';
+  }
+</script>

@@ -1,0 +1,196 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+  type?: string;
+}
+
+const { 
+  title, 
+  description = "Website Resmi SDIT Al-Hidayah Sumenep - Sekolah Pembina Generasi Islami, Berprestasi, Peduli dan Berbudaya",
+  image = "/logo-sdit.png",
+  type = "website"
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'https://sditalhidayahsumenep.sch.id');
+import "../styles/global.css";
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/logo-sdit.png" />
+    <meta name="generator" content={Astro.generator} />
+    
+    <!-- SEO Meta Tags -->
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={new URL(image, Astro.site || 'https://sditalhidayahsumenep.sch.id')} />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:site_name" content="SDIT Al-Hidayah Sumenep" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={canonicalURL} />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={new URL(image, Astro.site || 'https://sditalhidayahsumenep.sch.id')} />
+    
+    <!-- Additional SEO -->
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="SDIT Al-Hidayah Sumenep" />
+    <meta name="theme-color" content="#1e40af" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-white text-[#111c2d] antialiased" style="font-family:'Public Sans',sans-serif;">
+    <!-- Navbar -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-b border-gray-100 transition-all">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-[72px]">
+          <a href="/" class="flex items-center gap-2.5">
+            <img src="/logo-sdit.png" alt="Logo" class="w-10 h-10 object-contain" />
+            <div class="hidden sm:block">
+              <span class="text-lg font-bold text-[#111c2d] tracking-tight leading-none block">SDIT Al-Hidayah</span>
+              <span class="text-[10px] font-semibold uppercase tracking-widest text-[#6b7280]">Sumenep</span>
+            </div>
+          </a>
+
+          <nav class="hidden lg:flex items-center gap-1">
+            <a href="/" class="px-4 py-2 text-sm font-semibold text-[#1e40af] border-b-2 border-[#1e40af]">Beranda</a>
+            <a href="/tentang-kami" class="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#111c2d] border-b-2 border-transparent hover:border-[#1e40af] transition-all">Tentang Kami</a>
+            <a href="/spmb" class="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#111c2d] border-b-2 border-transparent hover:border-[#1e40af] transition-all">SPMB</a>
+            <a href="/berita" class="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#111c2d] border-b-2 border-transparent hover:border-[#1e40af] transition-all">Berita</a>
+            <a href="/dashboard/parent" class="px-4 py-2 text-sm font-medium text-[#6b7280] hover:text-[#111c2d] border-b-2 border-transparent hover:border-[#1e40af] transition-all">Cek Status</a>
+          </nav>
+
+          <div class="flex items-center gap-3">
+            <a href="/spmb" class="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#1e40af] text-white text-sm font-semibold rounded-xl hover:bg-[#1e3a8a] transition-all shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30">
+              <span class="material-symbols-outlined" style="font-size:18px;">how_to_reg</span>
+              Indent SPMB
+            </a>
+            <button id="mobile-menu-btn" class="lg:hidden p-2 text-[#6b7280] hover:text-[#111c2d] rounded-lg hover:bg-gray-50">
+              <span class="material-symbols-outlined" style="font-size:24px;">menu</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile menu -->
+      <div id="mobile-menu" class="hidden lg:hidden border-t border-gray-100 bg-white">
+        <div class="px-4 py-3 space-y-1">
+          <a href="/" class="block px-3 py-2.5 text-sm font-medium text-[#1e40af] bg-blue-50 rounded-lg">Beranda</a>
+          <a href="/spmb" class="block px-3 py-2.5 text-sm font-medium text-[#6b7280] hover:bg-gray-50 rounded-lg">SPMB</a>
+          <a href="/berita" class="block px-3 py-2.5 text-sm font-medium text-[#6b7280] hover:bg-gray-50 rounded-lg">Berita</a>
+          <a href="/dashboard/parent" class="block px-3 py-2.5 text-sm font-medium text-[#6b7280] hover:bg-gray-50 rounded-lg">Cek Status Pendaftaran</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="pt-[72px]">
+      <slot />
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-[#0f172a] text-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-10">
+          <div class="md:col-span-5">
+            <div class="flex items-center gap-2.5 mb-5">
+              <img src="/logo-sdit.png" alt="Logo" class="w-10 h-10 object-contain" />
+              <span class="text-lg font-bold tracking-tight">SDIT Al-Hidayah</span>
+            </div>
+            <p class="text-[#94a3b8] text-sm leading-relaxed max-w-sm mb-6">
+              Sekolah Dasar Islam Terpadu yang membentuk generasi Qurani, berakhlak mulia, cerdas, dan siap bersaing di era global.
+            </p>
+            <div class="flex items-center gap-3">
+              <a href="https://wa.me/628123456789" target="_blank" class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                <span class="material-symbols-outlined" style="font-size:20px;">chat</span>
+              </a>
+              <a href="mailto:info@sditalhidayah.sch.id" class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                <span class="material-symbols-outlined" style="font-size:20px;">mail</span>
+              </a>
+            </div>
+          </div>
+          <div class="md:col-span-2">
+            <h4 class="text-sm font-semibold uppercase tracking-wider text-white mb-4">Navigasi</h4>
+            <nav class="flex flex-col gap-3">
+              <a href="/" class="text-sm text-[#94a3b8] hover:text-white transition-colors">Beranda</a>
+              <a href="/spmb" class="text-sm text-[#94a3b8] hover:text-white transition-colors">Indent SPMB</a>
+              <a href="/berita" class="text-sm text-[#94a3b8] hover:text-white transition-colors">Berita & Artikel</a>
+              <a href="#program" class="text-sm text-[#94a3b8] hover:text-white transition-colors">Program Unggulan</a>
+            </nav>
+          </div>
+          <div class="md:col-span-2">
+            <h4 class="text-sm font-semibold uppercase tracking-wider text-white mb-4">Layanan</h4>
+            <nav class="flex flex-col gap-3">
+              <a href="/dashboard/parent" class="text-sm text-[#94a3b8] hover:text-white transition-colors">Cek Status SPMB</a>
+              <a href="/admin/login" class="text-sm text-[#94a3b8] hover:text-white transition-colors">Login Admin</a>
+            </nav>
+          </div>
+          <div class="md:col-span-3">
+            <h4 class="text-sm font-semibold uppercase tracking-wider text-white mb-4">Kontak</h4>
+            <div class="flex flex-col gap-3">
+              <div class="flex items-start gap-2.5">
+                <span class="material-symbols-outlined text-[#94a3b8] mt-0.5" style="font-size:18px;">location_on</span>
+                <span class="text-sm text-[#94a3b8]">Jl. Siwalan (KH. Agus Salim Gg. I), Pangarangan, Kota Sumenep, Jawa Timur</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[#94a3b8]" style="font-size:18px;">call</span>
+                <span class="text-sm text-[#94a3b8]">(0328) 672900</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[#94a3b8]" style="font-size:18px;">mail</span>
+                <span class="text-sm text-[#94a3b8]">info@sditalhidayah.sch.id</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-3">
+          <span class="text-sm text-[#64748b]">&copy; 2026 SDIT Al-Hidayah Sumenep. Hak Cipta Dilindungi.</span>
+          <span class="text-sm text-[#64748b]">Dibangun dengan <span class="text-[#94a3b8]">&#9829;</span> untuk pendidikan</span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  html { scroll-behavior: smooth; }
+  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+  @keyframes floatDelay { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .animate-float { animation: float 6s ease-in-out infinite; }
+  .animate-float-delay { animation: floatDelay 5s ease-in-out 1s infinite; }
+</style>
+
+<script is:inline>
+  document.getElementById('mobile-menu-btn')?.addEventListener('click', function() {
+    document.getElementById('mobile-menu')?.classList.toggle('hidden');
+  });
+  
+  var header = document.querySelector('header');
+  if (header) {
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 10) {
+        header.classList.add('shadow-md');
+      } else {
+        header.classList.remove('shadow-md');
+      }
+    });
+  }
+</script>

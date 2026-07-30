@@ -1,0 +1,19 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Cek Status Pendaftaran - SPMB SDIT Al-Hidayah">
+	<div id="parent-dashboard-root"></div>
+	
+	<script>
+		import React from 'react';
+		import { createRoot } from 'react-dom/client';
+		import ParentDashboard from '../../components/dashboard/ParentDashboard';
+		
+		const container = document.getElementById('parent-dashboard-root');
+		if (container) {
+			const root = createRoot(container);
+			root.render(React.createElement(ParentDashboard));
+		}
+	</script>
+</Layout>

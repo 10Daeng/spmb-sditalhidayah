@@ -1,0 +1,293 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Broadcast Pengumuman" activeMenu="broadcast">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Broadcast Pengumuman</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Kirim pengumuman massal ke calon siswa</p>
+    </div>
+    <button id="btnNewBroadcast" class="btn btn-primary">
+      <span class="material-symbols-outlined">campaign</span>
+      Broadcast Baru
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6" id="statsRow">
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-blue-500" style="font-size:20px;">send</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Total Broadcast</p>
+          <p class="text-lg font-bold text-gray-900" id="statTotal">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-emerald-500" style="font-size:20px;">check_circle</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Terkirim</p>
+          <p class="text-lg font-bold text-gray-900" id="statSent">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-amber-500" style="font-size:20px;">schedule</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Draf</p>
+          <p class="text-lg font-bold text-gray-900" id="statDraft">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-purple-500" style="font-size:20px;">group</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Total Penerima</p>
+          <p class="text-lg font-bold text-gray-900" id="statRecipients">0</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="data-table min-w-[800px]">
+        <thead>
+          <tr>
+            <th>Judul</th>
+            <th>Target</th>
+            <th>Channel</th>
+            <th>Penerima</th>
+            <th>Status</th>
+            <th>Waktu</th>
+            <th class="w-10">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="broadcastBody">
+          <tr><td colspan="7" class="text-center py-12 text-gray-400">Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- New Broadcast Modal -->
+  <div id="broadcastModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-lg max-w-xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Broadcast Baru</h3>
+        <button onclick="closeBroadcastModal()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center">
+          <span class="material-symbols-outlined text-gray-500">close</span>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Judul <span class="text-red-500">*</span></label>
+          <input type="text" id="bcTitle" class="input w-full" placeholder="Contoh: Pengumuman Jadwal Tes">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Pesan <span class="text-red-500">*</span></label>
+          <textarea id="bcMessage" class="input w-full" rows="4" placeholder="Tulis pesan pengumuman..."></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Target Penerima</label>
+          <select id="bcTarget" class="input w-full">
+            <option value="all">Semua Pendaftar</option>
+            <option value="pending">Menunggu Verifikasi</option>
+            <option value="verified">Terverifikasi</option>
+            <option value="lulus">Lulus</option>
+            <option value="tidak_lulus">Tidak Lulus</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Channel Pengiriman</label>
+          <div class="flex gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="bcInApp" checked class="w-4 h-4 rounded border-gray-300 text-blue-600">
+              <span class="text-sm text-gray-700">In-App</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="bcEmail" class="w-4 h-4 rounded border-gray-300 text-blue-600">
+              <span class="text-sm text-gray-700">Email</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="bcWa" class="w-4 h-4 rounded border-gray-300 text-blue-600">
+              <span class="text-sm text-gray-700">WhatsApp</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-100 flex justify-end gap-2">
+        <button onclick="closeBroadcastModal()" class="btn bg-gray-100 text-gray-700 hover:bg-gray-200">Batal</button>
+        <button onclick="sendBroadcast()" class="btn btn-primary">Kirim Broadcast</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 right-6 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2">
+    <span id="toastIcon" class="material-symbols-outlined">check_circle</span>
+    <span id="toastMsg"></span>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+const targetLabels = {
+  all: 'Semua',
+  pending: 'Menunggu',
+  verified: 'Terverifikasi',
+  lulus: 'Lulus',
+  tidak_lulus: 'Tidak Lulus',
+  custom: 'Custom'
+};
+
+const statusLabels = {
+  draft: { text: 'Draf', class: 'bg-gray-50 text-gray-600' },
+  sent: { text: 'Terkirim', class: 'bg-emerald-50 text-emerald-600' },
+  scheduled: { text: 'Terjadwal', class: 'bg-amber-50 text-amber-600' }
+};
+
+async function loadBroadcasts() {
+  const tbody = document.getElementById('broadcastBody');
+  tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-400">Memuat data...</td></tr>';
+
+  try {
+    const res = await fetch('/api/admin/broadcasts?limit=100', { credentials: 'include' });
+    const result = await res.json();
+
+    if (result.success) {
+      const data = result.data || [];
+      // Stats
+      document.getElementById('statTotal').textContent = data.length;
+      document.getElementById('statSent').textContent = data.filter(b => b.status === 'sent').length;
+      document.getElementById('statDraft').textContent = data.filter(b => b.status === 'draft').length;
+      document.getElementById('statRecipients').textContent = data.reduce((sum, b) => sum + (b.recipient_count || 0), 0);
+
+      if (!data.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-400">Belum ada broadcast</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.map(b => {
+        const st = statusLabels[b.status] || statusLabels.draft;
+        const channels = [];
+        if (b.send_in_app) channels.push('In-App');
+        if (b.send_email) channels.push('Email');
+        if (b.send_whatsapp) channels.push('WA');
+        const date = b.sent_at ? new Date(b.sent_at).toLocaleDateString('id-ID') : new Date(b.created_at).toLocaleDateString('id-ID');
+        return `<tr class="hover:bg-gray-50 transition-colors">
+          <td>
+            <div class="font-medium text-sm text-gray-900">${b.title}</div>
+            <div class="text-xs text-gray-400 truncate max-w-[200px]">${b.message}</div>
+          </td>
+          <td><span class="text-xs text-gray-600">${targetLabels[b.target_type] || b.target_type}</span></td>
+          <td><span class="text-xs text-gray-500">${channels.join(', ') || '-'}</span></td>
+          <td class="text-sm font-medium">${b.recipient_count || 0}</td>
+          <td><span class="badge ${st.class}">${st.text}</span></td>
+          <td class="text-xs text-gray-500">${date}</td>
+          <td>
+            <button onclick="deleteBroadcast('${b.id}')" class="w-8 h-8 rounded-lg hover:bg-red-50 text-red-500 flex items-center justify-center" title="Hapus">
+              <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+            </button>
+          </td>
+        </tr>`;
+      }).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-400">Gagal memuat data</td></tr>';
+    }
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-400">Terjadi kesalahan</td></tr>';
+  }
+}
+
+// Modal
+document.getElementById('btnNewBroadcast').addEventListener('click', () => {
+  document.getElementById('broadcastModal').classList.remove('hidden');
+});
+
+function closeBroadcastModal() {
+  document.getElementById('broadcastModal').classList.add('hidden');
+  document.getElementById('bcTitle').value = '';
+  document.getElementById('bcMessage').value = '';
+  document.getElementById('bcTarget').value = 'all';
+  document.getElementById('bcInApp').checked = true;
+  document.getElementById('bcEmail').checked = false;
+  document.getElementById('bcWa').checked = false;
+}
+
+async function sendBroadcast() {
+  const title = document.getElementById('bcTitle').value.trim();
+  const message = document.getElementById('bcMessage').value.trim();
+  const target_type = document.getElementById('bcTarget').value;
+  const send_in_app = document.getElementById('bcInApp').checked;
+  const send_email = document.getElementById('bcEmail').checked;
+  const send_whatsapp = document.getElementById('bcWa').checked;
+
+  if (!title || !message) {
+    showToast('Judul dan pesan wajib diisi', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/broadcasts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ title, message, target_type, send_in_app, send_email, send_whatsapp })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Broadcast terkirim');
+      closeBroadcastModal();
+      loadBroadcasts();
+    } else {
+      showToast(result.error || 'Gagal mengirim', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+async function deleteBroadcast(id) {
+  if (!confirm('Hapus broadcast ini?')) return;
+  try {
+    const res = await fetch(`/api/admin/broadcasts?id=${id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Broadcast dihapus');
+      loadBroadcasts();
+    } else {
+      showToast(result.error || 'Gagal menghapus', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = type === 'error' ? 'error' : 'check_circle';
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+loadBroadcasts();
+</script>

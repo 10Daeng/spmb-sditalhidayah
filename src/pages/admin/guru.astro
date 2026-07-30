@@ -1,0 +1,251 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { supabaseAdmin } from '../../lib/supabase.js';
+
+let teachers = [];
+try {
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('id, email, name, role, phone, is_active, created_at')
+    .eq('role', 'guru')
+    .order('name', { ascending: true });
+
+  if (!error && data) teachers = data;
+} catch (e) { /* table might not exist yet */ }
+
+const formatDate = (d: string) => {
+  if (!d) return '-';
+  return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+---
+
+<AdminLayout title="Guru & Pegawai" activeMenu="guru">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Guru & Pegawai</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Daftar guru dan pegawai sekolah</p>
+    </div>
+    <button class="btn btn-primary text-sm" onclick="openAddModal()">
+      <span class="material-symbols-outlined" style="font-size:18px;">person_add</span>
+      Tambah Guru
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="px-5 py-3 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+      <input type="text" id="search-input" placeholder="Cari nama atau email..." oninput="filterTable()" class="input !w-64 !py-2 text-sm" />
+      <div class="flex items-center gap-2">
+        <select id="filter-status" onchange="filterTable()" class="input !w-auto !py-2 !px-3 text-sm">
+          <option value="all">Semua</option>
+          <option value="active">Aktif</option>
+          <option value="inactive">Nonaktif</option>
+        </select>
+        <p class="text-xs text-gray-400" id="count-label">{teachers.length} guru</p>
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>Email</th>
+            <th>Telepon</th>
+            <th>Status</th>
+            <th>Terdaftar</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="teachers-table">
+          {teachers.length === 0 ? (
+            <tr>
+              <td colspan="6" class="text-center text-gray-400 py-12">
+                <span class="material-symbols-outlined text-5xl text-gray-300 block mb-2">school</span>
+                <p class="font-semibold text-gray-500">Belum ada data guru</p>
+                <p class="text-sm">Klik "Tambah Guru" untuk menambahkan guru baru</p>
+              </td>
+            </tr>
+          ) : teachers.map(t => (
+            <tr class="teacher-row" data-name={(t.name || '').toLowerCase()} data-email={(t.email || '').toLowerCase()} data-status={t.is_active ? 'active' : 'inactive'}>
+              <td>
+                <div class="flex items-center gap-3">
+                  <div class="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-teal-600" style="font-size:20px;">person</span>
+                  </div>
+                  <span class="font-medium text-gray-900">{t.name || '-'}</span>
+                </div>
+              </td>
+              <td><span class="text-sm text-gray-600">{t.email || '-'}</span></td>
+              <td><span class="text-sm text-gray-600">{t.phone || '-'}</span></td>
+              <td>
+                {t.is_active ? (
+                  <span class="badge badge-verified">Aktif</span>
+                ) : (
+                  <span class="badge badge-rejected">Nonaktif</span>
+                )}
+              </td>
+              <td><span class="text-sm text-gray-500">{formatDate(t.created_at)}</span></td>
+              <td>
+                <div class="flex gap-1">
+                  <button class="btn btn-ghost text-xs px-2 py-1" onclick={`editTeacher('${t.id}')`}>
+                    <span class="material-symbols-outlined" style="font-size:16px;">edit</span>
+                  </button>
+                  <button class="btn btn-ghost text-xs px-2 py-1" onclick={`toggleActive('${t.id}', ${t.is_active})`}>
+                    <span class="material-symbols-outlined" style="font-size:16px;">{t.is_active ? 'person_off' : 'person_check'}</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="modal-add" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="card p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-semibold text-gray-900" id="modal-title">Tambah Guru Baru</h3>
+        <button onclick="closeModal()" class="p-1 hover:bg-gray-100 rounded">
+          <span class="material-symbols-outlined" style="font-size:20px;">close</span>
+        </button>
+      </div>
+      <form id="teacher-form" class="space-y-4">
+        <input type="hidden" id="teacher-id" value="" />
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Nama Lengkap</label>
+          <input type="text" id="teacher-name" placeholder="Nama lengkap guru" class="input" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+          <input type="email" id="teacher-email" placeholder="guru@sditalhidayah.sch.id" class="input" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">No. Telepon</label>
+          <input type="text" id="teacher-phone" placeholder="0812xxxxxxx" class="input" />
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" class="btn btn-outline" onclick="closeModal()">Batal</button>
+          <button type="submit" class="btn btn-primary" id="submit-btn">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+  let editingId = null;
+
+  function filterTable() {
+    const search = (document.getElementById('search-input')?.value || '').toLowerCase();
+    const status = document.getElementById('filter-status')?.value;
+    const rows = document.querySelectorAll('.teacher-row');
+    let count = 0;
+
+    rows.forEach(row => {
+      const matchSearch = !search || row.dataset.name?.includes(search) || row.dataset.email?.includes(search);
+      const matchStatus = status === 'all' || row.dataset.status === status;
+      const visible = matchSearch && matchStatus;
+      row.style.display = visible ? '' : 'none';
+      if (visible) count++;
+    });
+
+    const label = document.getElementById('count-label');
+    if (label) label.textContent = count + ' guru';
+  }
+
+  function openAddModal() {
+    editingId = null;
+    document.getElementById('teacher-id').value = '';
+    document.getElementById('teacher-name').value = '';
+    document.getElementById('teacher-email').value = '';
+    document.getElementById('teacher-phone').value = '';
+    document.getElementById('modal-title').textContent = 'Tambah Guru Baru';
+    document.getElementById('submit-btn').textContent = 'Simpan';
+    document.getElementById('modal-add').classList.remove('hidden');
+  }
+
+  function editTeacher(id) {
+    fetch('/api/admin/teachers')
+      .then(r => r.json())
+      .then(result => {
+        const teacher = (result.data || []).find(t => t.id === id);
+        if (!teacher) { alert('Guru tidak ditemukan'); return; }
+        editingId = id;
+        document.getElementById('teacher-id').value = id;
+        document.getElementById('teacher-name').value = teacher.name || '';
+        document.getElementById('teacher-email').value = teacher.email || '';
+        document.getElementById('teacher-phone').value = teacher.phone || '';
+        document.getElementById('modal-title').textContent = 'Edit Guru';
+        document.getElementById('submit-btn').textContent = 'Update';
+        document.getElementById('modal-add').classList.remove('hidden');
+      })
+      .catch(err => { console.error(err); alert('Gagal memuat data guru'); });
+  }
+
+  function closeModal() {
+    document.getElementById('modal-add').classList.add('hidden');
+    editingId = null;
+  }
+
+  document.getElementById('teacher-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Menyimpan...';
+
+    const payload = {
+      name: document.getElementById('teacher-name').value,
+      email: document.getElementById('teacher-email').value,
+      phone: document.getElementById('teacher-phone').value,
+      role: 'guru'
+    };
+
+    try {
+      const url = editingId ? '/api/admin/teachers' : '/api/admin/teachers';
+      const method = editingId ? 'PUT' : 'POST';
+      if (editingId) payload.id = editingId;
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        alert(editingId ? 'Guru berhasil diupdate!' : 'Guru berhasil ditambahkan!');
+        closeModal();
+        location.reload();
+      } else {
+        alert('Error: ' + (result.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = editingId ? 'Update' : 'Simpan';
+    }
+  });
+
+  function toggleActive(id, currentStatus) {
+    const action = currentStatus ? 'menonaktifkan' : 'mengaktifkan';
+    if (!confirm('Yakin ingin ' + action + ' guru ini?')) return;
+
+    fetch('/api/admin/teachers', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, is_active: !currentStatus })
+    })
+    .then(r => r.json())
+    .then(result => {
+      if (result.success) location.reload();
+      else alert('Error: ' + (result.error || 'Unknown error'));
+    })
+    .catch(err => { alert('Error: ' + err.message); });
+  }
+
+  document.getElementById('modal-add')?.addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>

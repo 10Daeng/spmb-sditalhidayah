@@ -1,0 +1,230 @@
+---
+export const prerender = false;
+import Layout from '../../layouts/Layout.astro';
+import { supabaseAdmin } from '../../lib/supabase.js';
+
+// Fetch SPMB settings from DB
+let settings = null;
+try {
+  const { data } = await supabaseAdmin
+    .from('spmb_settings')
+    .select('*')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+  settings = data;
+} catch (e) {}
+
+const s = settings || {};
+const formatRupiah = (num) => 'Rp ' + (num || 0).toLocaleString('id-ID');
+const formatDate = (d) => {
+  if (!d) return '-';
+  try { return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }); } catch { return d; }
+};
+
+// Fee labels
+const feeRegular = s.fee_regular || 500000;
+const feeIndent = s.fee_indent || 0;
+---
+
+<Layout 
+  title={`SPMB Online ${s.academic_year || '2026/2027'} - SDIT Al-Hidayah Sumenep`}
+  description={`Indent Pendaftaran Murid Baru SDIT Al-Hidayah Sumenep tahun ajaran ${s.academic_year || '2026/2027'}. Daftarkan putra-putri Anda di sekolah unggulan kami.`}
+  image="/logo-sdit.png"
+>
+  <section class="bg-gradient-to-br from-[#1e40af] via-[#312e81] to-[#1e1b4b] pt-32 pb-20">
+    <div class="max-w-4xl mx-auto px-4 text-center">
+      <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-semibold uppercase tracking-wider mb-4">
+        <span class="material-symbols-outlined" style="font-size:16px;">how_to_reg</span>
+        SPMB {s.academic_year || '2026/2027'}
+      </span>
+      <h1 class="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight" style="letter-spacing:-0.02em;">
+        Indent Pendaftaran Murid Baru
+      </h1>
+      <p class="text-blue-200 text-lg max-w-2xl mx-auto mb-8">
+        SDIT Al-Hidayah Sumenep membuka Indent untuk tahun ajaran {s.academic_year || '2026/2027'}. Segera daftarkan putra-putri Anda di sekolah unggulan kami.
+      </p>
+      <a href="/spmb/form" class="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#1e40af] font-bold rounded-2xl hover:bg-gray-100 transition-all shadow-xl">
+        <span class="material-symbols-outlined" style="font-size:20px;">edit_note</span>
+        Mengisi Formulir
+      </a>
+    </div>
+  </section>
+
+  <!-- Info Cards -->
+  <section class="bg-white py-16">
+    <div class="max-w-6xl mx-auto px-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Jadwal -->
+        <div class="card p-6 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
+            <span class="material-symbols-outlined text-[#1e40af]" style="font-size:28px;">event</span>
+          </div>
+          <h3 class="font-bold text-gray-900 mb-2">Jadwal SPMB</h3>
+          <div class="text-sm text-gray-600 space-y-1">
+            <p><strong>Indent:</strong> {formatDate(s.registration_start)} - {formatDate(s.registration_end)}</p>
+            <p><strong>Tes Masuk:</strong> {s.test_date || 'Juli 2026'}</p>
+            <p><strong>Pengumuman:</strong> {s.announcement_date || 'Agustus 2026'}</p>
+          </div>
+        </div>
+
+        <!-- Biaya -->
+        <div class="card p-6 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+            <span class="material-symbols-outlined text-emerald-600" style="font-size:28px;">payments</span>
+          </div>
+          <h3 class="font-bold text-gray-900 mb-2">Biaya Pendaftaran</h3>
+          <div class="text-sm text-gray-600 space-y-1">
+            <p><strong>Reguler:</strong> {formatRupiah(feeRegular)}</p>
+            <p><strong>Khusus / Indent:</strong> {feeIndent > 0 ? formatRupiah(feeIndent) : 'Gratis'}</p>
+          </div>
+        </div>
+
+        <!-- Kuota -->
+        <div class="card p-6 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mx-auto mb-4">
+            <span class="material-symbols-outlined text-amber-600" style="font-size:28px;">groups</span>
+          </div>
+          <h3 class="font-bold text-gray-900 mb-2">Kuota Siswa</h3>
+          <div class="text-sm text-gray-600 space-y-1">
+            <p><strong>Kelas 1:</strong> {s.quota_class1 || 120} siswa</p>
+            <p><strong>Kelas 2-6:</strong> {s.quota_other_classes || 'Sesuai ketersediaan'}</p>
+            <p class="text-xs text-gray-400 mt-2">*Per kelas maksimal {s.max_per_class || 30} siswa</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Requirements -->
+  <section class="bg-[#f8fafc] py-16">
+    <div class="max-w-4xl mx-auto px-4">
+      <div class="text-center mb-10">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Persyaratan Indent</h2>
+        <p class="text-gray-500">Pastikan Anda menyiapkan dokumen dan memenuhi syarat berikut</p>
+      </div>
+
+      {s.requirements_html ? (
+        <div class="card p-6 prose prose-blue max-w-none" set:html={s.requirements_html} />
+      ) : (
+        <div class="space-y-4">
+          <div class="card p-5 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-blue-600" style="font-size:20px;">1</span>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Usia Calon Siswa</h3>
+              <p class="text-sm text-gray-600 mt-1">Minimal berusia 6 tahun pada 1 Juli 2026 (kelas 1). Untuk kelas mutasi, sesuai jenjang pendidikan.</p>
+            </div>
+          </div>
+          <div class="card p-5 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-blue-600" style="font-size:20px;">2</span>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Dokumen yang Diperlukan</h3>
+              <ul class="text-sm text-gray-600 mt-1 space-y-1 list-disc list-inside">
+                <li>Kartu Keluarga (KK) asli & fotokopi</li>
+                <li>Akta Kelahiran asli & fotokopi</li>
+                <li>Pas foto 3x4 (3 lembar)</li>
+                <li>Rapor TK / PAUD terakhir (jika ada)</li>
+              </ul>
+            </div>
+          </div>
+          <div class="card p-5 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-blue-600" style="font-size:20px;">3</span>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Data Orang Tua / Wali</h3>
+              <p class="text-sm text-gray-600 mt-1">Nama lengkap, NIK, pekerjaan, penghasilan, nomor HP aktif, dan alamat domisili.</p>
+            </div>
+          </div>
+          <div class="card p-5 flex items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-blue-600" style="font-size:20px;">4</span>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Jalur Indent</h3>
+              <p class="text-sm text-gray-600 mt-1">Pilih salah satu jalur: <strong>Reguler</strong> (umum) atau <strong>Khusus / Indent</strong> (khusus).</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <!-- Steps -->
+  <section class="bg-white py-16">
+    <div class="max-w-4xl mx-auto px-4">
+      <div class="text-center mb-10">
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Alur Indent</h2>
+        <p class="text-gray-500">Ikuti langkah-langkah berikut untuk mendaftar</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="text-center">
+          <div class="w-14 h-14 rounded-full bg-[#1e40af] text-white flex items-center justify-center mx-auto mb-4 text-xl font-bold">1</div>
+          <h3 class="font-semibold text-gray-900 mb-1">Isi Formulir</h3>
+          <p class="text-sm text-gray-500">Lengkapi data siswa, orang tua, dan dokumen secara online</p>
+        </div>
+        <div class="text-center">
+          <div class="w-14 h-14 rounded-full bg-[#1e40af] text-white flex items-center justify-center mx-auto mb-4 text-xl font-bold">2</div>
+          <h3 class="font-semibold text-gray-900 mb-1">Verifikasi Data</h3>
+          <p class="text-sm text-gray-500">Panitia akan memverifikasi kelengkapan data (1-3 hari)</p>
+        </div>
+        <div class="text-center">
+          <div class="w-14 h-14 rounded-full bg-[#1e40af] text-white flex items-center justify-center mx-auto mb-4 text-xl font-bold">3</div>
+          <h3 class="font-semibold text-gray-900 mb-1">Tes Masuk</h3>
+          <p class="text-sm text-gray-500">Ikuti tes seleksi sesuai jadwal yang diberikan</p>
+        </div>
+        <div class="text-center">
+          <div class="w-14 h-14 rounded-full bg-[#1e40af] text-white flex items-center justify-center mx-auto mb-4 text-xl font-bold">4</div>
+          <h3 class="font-semibold text-gray-900 mb-1">Daftar Ulang</h3>
+          <p class="text-sm text-gray-500">Lengkapi pembayaran dan daftar ulang jika diterima</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section class="bg-[#f8fafc] py-16">
+    <div class="max-w-4xl mx-auto px-4 text-center">
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Hubungi Kami</h2>
+      <p class="text-gray-500 mb-8">Ada pertanyaan? Silakan hubungi panitia SPMB</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
+        <div class="card p-5">
+          <span class="material-symbols-outlined text-blue-600 text-3xl mb-2">phone</span>
+          <p class="text-sm text-gray-600">{s.contact_phone || '(0328) 123456'}</p>
+        </div>
+        <div class="card p-5">
+          <span class="material-symbols-outlined text-emerald-600 text-3xl mb-2">chat</span>
+          <p class="text-sm text-gray-600">{s.contact_whatsapp || '08123456789'}</p>
+        </div>
+        <div class="card p-5">
+          <span class="material-symbols-outlined text-amber-600 text-3xl mb-2">mail</span>
+          <p class="text-sm text-gray-600">{s.contact_email || 'info@sditalhidayah.sch.id'}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="bg-gradient-to-r from-[#1e40af] via-[#312e81] to-[#1e1b4b] py-16">
+    <div class="max-w-4xl mx-auto px-4 text-center">
+      <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">Siap Mendaftar?</h2>
+      <p class="text-blue-200 mb-8">Pastikan semua dokumen sudah disiapkan sebelum mengisi formulir</p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="/spmb/form" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#1e40af] font-bold rounded-2xl hover:bg-gray-100 transition-colors shadow-xl">
+          <span class="material-symbols-outlined" style="font-size:20px;">edit_note</span>
+          Isi Formulir SPMB
+        </a>
+        <a href="/dashboard/parent" class="inline-flex items-center justify-center gap-2 px-8 py-4 border-2 border-white/30 text-white font-bold rounded-2xl hover:bg-white/10 transition-colors">
+          <span class="material-symbols-outlined" style="font-size:20px;">search</span>
+          Cek Status Pendaftaran
+        </a>
+      </div>
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,631 @@
+---
+export const prerender = false;
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Konfirmasi Pembayaran" activeMenu="konfirmasi-bayar">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Konfirmasi Pembayaran</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Verifikasi pembayaran Indent dan daftar ulang</p>
+    </div>
+    <div class="flex gap-2">
+      <button id="btnExport" class="btn bg-gray-100 text-gray-700 hover:bg-gray-200">
+        <span class="material-symbols-outlined">download</span>
+        Export
+      </button>
+      <button id="btnAddPayment" class="btn btn-primary">
+        <span class="material-symbols-outlined">add</span>
+        Tambah Tagihan
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-2 sm:grid-cols-6 gap-4 mb-6" id="summaryCards">
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-blue-500" style="font-size:20px;">receipt_long</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Total Tagihan</p>
+          <p class="text-lg font-bold text-gray-900" id="totalCount">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-amber-500" style="font-size:20px;">hourglass_top</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Menunggu</p>
+          <p class="text-lg font-bold text-gray-900" id="pendingCount">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-emerald-500" style="font-size:20px;">check_circle</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Lunas</p>
+          <p class="text-lg font-bold text-gray-900" id="paidCount">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-rose-500" style="font-size:20px;">money_off</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Kurang Bayar</p>
+          <p class="text-lg font-bold text-gray-900" id="partialCount">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-teal-500" style="font-size:20px;">payments</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Total Tunai</p>
+          <p class="text-lg font-bold text-gray-900" id="tunaiCount">Rp 0</p>
+        </div>
+      </div>
+    </div>
+    <div class="card p-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
+          <span class="material-symbols-outlined text-indigo-500" style="font-size:20px;">account_balance</span>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500">Total Transfer</p>
+          <p class="text-lg font-bold text-gray-900" id="transferCount">Rp 0</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card p-4 mb-4">
+    <div class="flex flex-col sm:flex-row gap-3 items-end">
+      <div class="flex-1 min-w-[200px]">
+        <label class="block text-xs font-medium text-gray-500 mb-1">Cari</label>
+        <input type="text" id="searchInput" class="input w-full" placeholder="Cari nama, nomor pendaftaran...">
+      </div>
+      <div class="min-w-[160px]">
+        <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+        <select id="statusFilter" class="input w-full">
+          <option value="">Semua Status</option>
+          <option value="pending">Menunggu</option>
+          <option value="paid">Lunas</option>
+          <option value="partial">Kurang Bayar</option>
+          <option value="overpaid">Kelebihan</option>
+        </select>
+      </div>
+      <div class="min-w-[160px]">
+        <label class="block text-xs font-medium text-gray-500 mb-1">Jenis</label>
+        <select id="typeFilter" class="input w-full">
+          <option value="">Semua Jenis</option>
+          <option value="pendaftaran">Indent</option>
+          <option value="daftar_ulang">Daftar Ulang</option>
+          <option value="spp">SPP</option>
+        </select>
+      </div>
+      <button id="btnFilter" class="btn btn-primary">
+        <span class="material-symbols-outlined" style="font-size:18px;">filter_list</span>
+        Filter
+      </button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card overflow-hidden" id="tableCard">
+    <div class="overflow-x-auto">
+      <table class="data-table min-w-[900px]">
+        <thead>
+          <tr>
+            <th class="w-10"><input type="checkbox" id="selectAll"></th>
+            <th>No. Pendaftaran</th>
+            <th>Nama Siswa</th>
+            <th>Jenis</th>
+            <th>Nominal</th>
+            <th>Dibayar</th>
+            <th>Status</th>
+            <th>Metode</th>
+            <th>Tanggal</th>
+            <th class="w-10">Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="paymentsBody">
+          <tr><td colspan="10" class="text-center py-12 text-gray-400">Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t border-gray-100 gap-3" id="pagination">
+      <p class="text-xs text-gray-500" id="pageInfo">Menampilkan 0 - 0 dari 0</p>
+      <div class="flex items-center gap-2" id="pageControls"></div>
+    </div>
+  </div>
+
+  <!-- Add Payment Modal -->
+  <div id="addModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+        <h3 class="text-lg font-semibold">Tambah Tagihan Baru</h3>
+        <button onclick="closeAddModal()" class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center">
+          <span class="material-symbols-outlined text-gray-500">close</span>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Pendaftar</label>
+          <select id="addRegId" class="input w-full">
+            <option value="">Pilih pendaftar...</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Pembayaran</label>
+          <select id="addType" class="input w-full">
+            <option value="pendaftaran">Biaya Pendaftaran</option>
+            <option value="daftar_ulang">Daftar Ulang</option>
+            <option value="spp">SPP</option>
+            <option value="lainnya">Lainnya</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nominal (Rp)</label>
+          <input type="number" id="addAmount" class="input w-full" placeholder="500000">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Metode Pembayaran</label>
+          <select id="addMethod" class="input w-full">
+            <option value="">Pilih metode...</option>
+            <option value="transfer">Transfer Bank</option>
+            <option value="cash">Tunai</option>
+            <option value="qris">QRIS</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Jatuh Tempo</label>
+          <input type="date" id="addDueDate" class="input w-full">
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-100 flex justify-end gap-2">
+        <button onclick="closeAddModal()" class="btn bg-gray-100 text-gray-700 hover:bg-gray-200">Batal</button>
+        <button onclick="savePayment()" class="btn btn-primary">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div id="confirmModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-lg max-w-md w-full">
+      <div class="p-6 border-b border-gray-100">
+        <h3 class="text-lg font-semibold">Konfirmasi Pembayaran</h3>
+        <p class="text-sm text-gray-500 mt-1">Verifikasi pembayaran dari <span id="confirmStudentName" class="font-medium text-gray-700"></span></p>
+      </div>
+      <div class="p-6 space-y-4">
+        <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Jenis</span><span id="confirmType" class="font-medium"></span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Nominal</span><span id="confirmAmount" class="font-medium"></span></div>
+          <div class="flex justify-between text-sm"><span class="text-gray-500">Metode</span><span id="confirmMethod" class="font-medium"></span></div>
+        </div>
+        <div id="confirmProofContainer" class="hidden text-center"></div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Dibayar (Rp)</label>
+          <input type="number" id="confirmPaidAmount" class="input w-full">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <select id="confirmStatus" class="input w-full">
+            <option value="paid">Lunas</option>
+            <option value="partial">Kurang Bayar</option>
+            <option value="overpaid">Kelebihan Bayar</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Metode Diterima (Wajib)</label>
+          <select id="confirmNewMethod" class="input w-full">
+            <option value="tunai">Tunai (Cash)</option>
+            <option value="transfer">Transfer Bank</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+          <textarea id="confirmNotes" class="input w-full" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="p-6 border-t border-gray-100 flex justify-end gap-2">
+        <button onclick="closeConfirmModal()" class="btn bg-gray-100 text-gray-700 hover:bg-gray-200">Batal</button>
+        <button onclick="submitConfirm()" class="btn btn-primary">Konfirmasi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed bottom-6 right-6 bg-gray-900 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-2">
+    <span id="toastIcon" class="material-symbols-outlined">check_circle</span>
+    <span id="toastMsg"></span>
+  </div>
+</AdminLayout>
+
+<script is:inline>
+let currentPage = 1;
+let currentData = [];
+let selectedPaymentId = null;
+
+const statusLabels = {
+  pending: { text: 'Menunggu', class: 'bg-amber-50 text-amber-600' },
+  paid: { text: 'Lunas', class: 'bg-emerald-50 text-emerald-600' },
+  partial: { text: 'Kurang', class: 'bg-rose-50 text-rose-600' },
+  overpaid: { text: 'Kelebihan', class: 'bg-blue-50 text-blue-600' },
+  refunded: { text: 'Dikembalikan', class: 'bg-gray-50 text-gray-600' }
+};
+
+const typeLabels = {
+  pendaftaran: 'Indent',
+  daftar_ulang: 'Daftar Ulang',
+  spp: 'SPP',
+  lainnya: 'Lainnya'
+};
+
+function formatRupiah(num) {
+  return 'Rp ' + (num || 0).toLocaleString('id-ID');
+}
+
+async function loadPayments(page = 1) {
+  currentPage = page;
+  const tbody = document.getElementById('paymentsBody');
+  tbody.innerHTML = '<tr><td colspan="10" class="text-center py-12 text-gray-400">Memuat data...</td></tr>';
+
+  const status = document.getElementById('statusFilter').value;
+  const type = document.getElementById('typeFilter').value;
+  const search = document.getElementById('searchInput').value;
+
+  let url = `/api/admin/payments?page=${page}&limit=50`;
+  if (status) url += `&status=${status}`;
+  if (type) url += `&type=${type}`;
+
+  try {
+    const res = await fetch(url, { credentials: 'include' });
+    const result = await res.json();
+
+    if (result.success) {
+      currentData = result.data;
+      document.getElementById('totalCount').textContent = result.summary?.total || 0;
+      document.getElementById('pendingCount').textContent = result.summary?.pending || 0;
+      document.getElementById('paidCount').textContent = result.summary?.paid || 0;
+      document.getElementById('partialCount').textContent = (result.summary?.partial || 0) + (result.summary?.overpaid || 0);
+      document.getElementById('tunaiCount').textContent = formatRupiah(result.summary?.total_tunai || 0);
+      document.getElementById('transferCount').textContent = formatRupiah(result.summary?.total_transfer || 0);
+
+      renderTable(result.data, search);
+      renderPagination(result.total, result.page, result.limit);
+      document.getElementById('pageInfo').textContent = `Menampilkan ${result.data.length} dari ${result.total} tagihan`;
+    } else {
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center py-12 text-gray-400">Gagal memuat data</td></tr>';
+    }
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="10" class="text-center py-12 text-gray-400">Terjadi kesalahan</td></tr>';
+  }
+}
+
+function renderTable(data, searchTerm) {
+  const tbody = document.getElementById('paymentsBody');
+  let filtered = data;
+  if (searchTerm) {
+    const s = searchTerm.toLowerCase();
+    filtered = data.filter(p => {
+      const reg = p.registration || {};
+      return (reg.student_full_name || '').toLowerCase().includes(s) ||
+             (reg.registration_number || '').toLowerCase().includes(s) ||
+             (reg.parent_name || '').toLowerCase().includes(s);
+    });
+  }
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="text-center py-12 text-gray-400">Tidak ada data</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(p => {
+    const reg = p.registration || {};
+    const st = statusLabels[p.status] || statusLabels.pending;
+    const date = p.paid_at ? new Date(p.paid_at).toLocaleDateString('id-ID') : (p.created_at ? new Date(p.created_at).toLocaleDateString('id-ID') : '-');
+    return `<tr class="hover:bg-gray-50 transition-colors">
+      <td><input type="checkbox" class="row-check" data-id="${p.id}"></td>
+      <td class="font-mono text-xs">${reg.registration_number || '-'}</td>
+      <td>
+        <div class="font-medium text-sm text-gray-900">${reg.student_full_name || '-'}</div>
+        <div class="text-xs text-gray-400">${reg.parent_name || ''}</div>
+      </td>
+      <td><span class="text-xs text-gray-600">${typeLabels[p.payment_type] || p.payment_type}</span></td>
+      <td class="font-medium text-sm">${formatRupiah(p.amount)}</td>
+      <td class="text-sm ${p.paid_amount < p.amount ? 'text-rose-600' : 'text-gray-700'}">${formatRupiah(p.paid_amount)}</td>
+      <td><span class="badge ${st.class}">${st.text}</span></td>
+      <td class="text-xs text-gray-500">
+        ${p.payment_method || '-'}
+        ${p.proof_image_url ? `<a href="${p.proof_image_url}" target="_blank" class="text-blue-600 block mt-1 hover:underline" title="Klik untuk lihat penuh">🖼️ Lihat Bukti</a>` : ''}
+      </td>
+      <td class="text-xs text-gray-500">${date}</td>
+      <td>
+        <div class="flex gap-1">
+          ${p.status === 'pending' || p.status === 'partial' ? `<button onclick="openConfirmModal('${p.id}')" class="w-8 h-8 rounded-lg hover:bg-emerald-50 text-emerald-600 flex items-center justify-center" title="Konfirmasi"><span class="material-symbols-outlined" style="font-size:18px;">check</span></button>` : ''}
+          ${p.status === 'paid' || p.status === 'partial' || p.status === 'overpaid' ? `<button onclick="printReceipt('${p.id}')" class="w-8 h-8 rounded-lg hover:bg-blue-50 text-blue-600 flex items-center justify-center" title="Cetak Kuitansi"><span class="material-symbols-outlined" style="font-size:18px;">print</span></button>` : ''}
+          <button onclick="deletePayment('${p.id}')" class="w-8 h-8 rounded-lg hover:bg-red-50 text-red-500 flex items-center justify-center" title="Hapus"><span class="material-symbols-outlined" style="font-size:18px;">delete</span></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPagination(total, page, limit) {
+  const totalPages = Math.ceil(total / limit) || 1;
+  const controls = document.getElementById('pageControls');
+  let html = '';
+  if (page > 1) html += `<button onclick="loadPayments(${page - 1})" class="px-3 py-1.5 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">Prev</button>`;
+  html += `<span class="px-3 py-1.5 text-sm text-gray-600">${page} / ${totalPages}</span>`;
+  if (page < totalPages) html += `<button onclick="loadPayments(${page + 1})" class="px-3 py-1.5 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">Next</button>`;
+  controls.innerHTML = html;
+}
+
+// Add Modal
+async function loadRegistrationsForSelect() {
+  try {
+    const res = await fetch('/api/admin/registrations?limit=1000', { credentials: 'include' });
+    const result = await res.json();
+    const select = document.getElementById('addRegId');
+    select.innerHTML = '<option value="">Pilih pendaftar...</option>';
+    if (result.data) {
+      result.data.forEach(r => {
+        select.innerHTML += `<option value="${r.id}">${r.registration_number} - ${r.student_full_name}</option>`;
+      });
+    }
+  } catch (e) {}
+}
+
+document.getElementById('btnAddPayment').addEventListener('click', () => {
+  loadRegistrationsForSelect();
+  document.getElementById('addModal').classList.remove('hidden');
+});
+
+function closeAddModal() {
+  document.getElementById('addModal').classList.add('hidden');
+  document.getElementById('addRegId').value = '';
+  document.getElementById('addType').value = 'pendaftaran';
+  document.getElementById('addAmount').value = '';
+  document.getElementById('addMethod').value = '';
+  document.getElementById('addDueDate').value = '';
+}
+
+async function savePayment() {
+  const registration_id = document.getElementById('addRegId').value;
+  const payment_type = document.getElementById('addType').value;
+  const amount = document.getElementById('addAmount').value;
+  const payment_method = document.getElementById('addMethod').value;
+  const due_date = document.getElementById('addDueDate').value;
+
+  if (!registration_id || !amount) {
+    showToast('Pendaftar dan nominal wajib diisi', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/payments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ registration_id, payment_type, amount, payment_method, due_date })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Tagihan berhasil ditambahkan');
+      closeAddModal();
+      loadPayments(currentPage);
+    } else {
+      showToast(result.error || 'Gagal menyimpan', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+// Confirm Modal
+function openConfirmModal(id) {
+  selectedPaymentId = id;
+  const p = currentData.find(x => x.id === id);
+  if (!p) return;
+  const reg = p.registration || {};
+  document.getElementById('confirmStudentName').textContent = reg.student_full_name || '-';
+  document.getElementById('confirmType').textContent = typeLabels[p.payment_type] || p.payment_type;
+  document.getElementById('confirmAmount').textContent = formatRupiah(p.amount);
+  document.getElementById('confirmMethod').textContent = p.payment_method || '-';
+  
+  const proofContainer = document.getElementById('confirmProofContainer');
+  if (p.proof_image_url) {
+    proofContainer.innerHTML = `<p class="text-xs text-gray-500 mb-1 text-left">Bukti Upload Orang Tua:</p><a href="${p.proof_image_url}" target="_blank"><img src="${p.proof_image_url}" alt="Bukti" class="w-full rounded-lg border max-h-48 object-contain bg-gray-50"/></a>`;
+    proofContainer.classList.remove('hidden');
+  } else {
+    proofContainer.innerHTML = '';
+    proofContainer.classList.add('hidden');
+  }
+
+  document.getElementById('confirmPaidAmount').value = p.amount;
+  document.getElementById('confirmStatus').value = 'paid';
+  document.getElementById('confirmNotes').value = '';
+  document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirmModal').classList.add('hidden');
+  selectedPaymentId = null;
+}
+
+async function submitConfirm() {
+  if (!selectedPaymentId) return;
+  const paid_amount = document.getElementById('confirmPaidAmount').value;
+  const status = document.getElementById('confirmStatus').value;
+  const payment_method = document.getElementById('confirmNewMethod').value;
+  const confirmation_notes = document.getElementById('confirmNotes').value;
+
+  try {
+    const res = await fetch('/api/admin/payments', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ id: selectedPaymentId, action: 'confirm', paid_amount, status, payment_method, confirmation_notes })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Pembayaran dikonfirmasi');
+      closeConfirmModal();
+      loadPayments(currentPage);
+    } else {
+      showToast(result.error || 'Gagal mengkonfirmasi', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+// Delete
+async function deletePayment(id) {
+  if (!confirm('Hapus tagihan ini?')) return;
+  try {
+    const res = await fetch(`/api/admin/payments?id=${id}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Tagihan dihapus');
+      loadPayments(currentPage);
+    } else {
+      showToast(result.error || 'Gagal menghapus', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
+// Print Receipt
+function printReceipt(id) {
+  const p = currentData.find(x => x.id === id);
+  if (!p) return;
+  const reg = p.registration || {};
+  
+  const printWindow = window.open('', '_blank');
+  
+  const receiptHTML = `
+    <html>
+      <head>
+        <title>Kuitansi Pembayaran - ${reg.student_full_name}</title>
+        <style>
+          body { font-family: 'Arial', sans-serif; padding: 40px; color: #333; max-width: 800px; margin: 0 auto; }
+          .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+          .header h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
+          .header p { margin: 5px 0 0; color: #666; }
+          .title { text-align: center; font-size: 20px; font-weight: bold; text-decoration: underline; margin-bottom: 30px; }
+          .details { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+          .details td { padding: 10px; font-size: 16px; border-bottom: 1px dashed #eee; }
+          .details td:first-child { width: 30%; font-weight: bold; color: #555; }
+          .amount-box { background: #f9f9f9; border: 1px solid #ddd; padding: 15px 20px; font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 40px; }
+          .footer { display: flex; justify-content: space-between; margin-top: 50px; }
+          .signature { text-align: center; width: 250px; }
+          .signature p { margin-bottom: 80px; }
+          @media print { 
+            body { padding: 0; }
+            button { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>SDIT AL-HIDAYAH</h1>
+          <p>Tanda Terima Pembayaran SPMB</p>
+        </div>
+        
+        <div class="title">KUITANSI PEMBAYARAN</div>
+        
+        <table class="details">
+          <tr>
+            <td>Nomor Registrasi</td>
+            <td>: ${reg.registration_number || '-'}</td>
+          </tr>
+          <tr>
+            <td>Nama Lengkap Siswa</td>
+            <td>: ${reg.student_full_name || '-'}</td>
+          </tr>
+          <tr>
+            <td>Jenis Pembayaran</td>
+            <td>: ${typeLabels[p.payment_type] || p.payment_type}</td>
+          </tr>
+          <tr>
+            <td>Status</td>
+            <td>: ${statusLabels[p.status] ? statusLabels[p.status].text : '-'}</td>
+          </tr>
+          <tr>
+            <td>Metode Pembayaran</td>
+            <td>: ${p.payment_method || '-'}</td>
+          </tr>
+          <tr>
+            <td>Tanggal Pembayaran</td>
+            <td>: ${p.paid_at ? new Date(p.paid_at).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}) : '-'}</td>
+          </tr>
+        </table>
+        
+        <div class="amount-box">
+          Uang Sejumlah: ${formatRupiah(p.paid_amount || p.amount)}
+        </div>
+        
+        <div class="footer">
+          <div class="signature">
+            <p>Penyetor,</p>
+            <div>_________________________</div>
+            <div style="font-size: 14px; margin-top: 5px; color: #666;">( ${reg.parent_name || 'Orang Tua / Wali'} )</div>
+          </div>
+          <div class="signature">
+            <p>Penerima / Panitia Keuangan,</p>
+            <div>_________________________</div>
+            <div style="font-size: 14px; margin-top: 5px; color: #666;">( Admin SPMB )</div>
+          </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 50px;">
+          <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 5px;">Print Kuitansi</button>
+        </div>
+      </body>
+    </html>
+  `;
+  
+  printWindow.document.write(receiptHTML);
+  printWindow.document.close();
+}
+
+// Filter
+document.getElementById('btnFilter').addEventListener('click', () => loadPayments(1));
+document.getElementById('searchInput').addEventListener('input', () => loadPayments(1));
+
+// Export placeholder
+document.getElementById('btnExport').addEventListener('click', () => {
+  showToast('Export dalam pengembangan', 'error');
+});
+
+// Toast
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  document.getElementById('toastIcon').textContent = type === 'error' ? 'error' : 'check_circle';
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+// Init
+loadPayments();
+</script>

@@ -1,0 +1,198 @@
+---
+export const prerender = false;
+import Layout from '../layouts/Layout.astro';
+import { supabaseAdmin } from '../lib/supabase.js';
+
+let articles = [];
+let error = null;
+
+try {
+  const { data, error: dbError } = await supabaseAdmin
+    .from('articles')
+    .select('id, title, excerpt, content, category, slug, status, created_at, published_at, featured_image_url, author_name, views_count')
+    .eq('status', 'published')
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (dbError) throw dbError;
+  articles = data || [];
+} catch (e) {
+  error = e.message;
+}
+
+const categoryLabels: Record<string, string> = {
+  Berita: 'Berita',
+  Pengumuman: 'Pengumuman',
+  Prestasi: 'Prestasi',
+  Kegiatan: 'Kegiatan',
+  Akademik: 'Akademik',
+  Informasi: 'Informasi',
+};
+
+const categoryIcons: Record<string, string> = {
+  Berita: 'newspaper',
+  Pengumuman: 'campaign',
+  Prestasi: 'emoji_events',
+  Kegiatan: 'celebration',
+  Akademik: 'school',
+  Informasi: 'info',
+};
+
+const formatDate = (d: string) => {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+const categories = ['all', ...new Set(articles.map(a => a.category).filter(Boolean))];
+const featured = articles.length > 0 ? articles[0] : null;
+const rest = articles.length > 1 ? articles.slice(1) : [];
+---
+
+<Layout title="Berita & Artikel - SDIT Al-Hidayah Sumenep">
+  <section class="bg-gradient-to-r from-[#1e40af] via-[#312e81] to-[#1e1b4b] py-16">
+    <div class="max-w-6xl mx-auto px-4 text-center">
+      <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-semibold uppercase tracking-wider mb-4">
+        <span class="material-symbols-outlined" style="font-size:16px;">newspaper</span>
+        Berita & Artikel
+      </span>
+      <h1 class="text-3xl md:text-4xl font-extrabold text-white mb-3" style="letter-spacing:-0.02em;">Informasi & Kegiatan</h1>
+      <p class="text-blue-200 text-lg max-w-xl mx-auto">Berita dan artikel terbaru seputar kegiatan di SDIT Al-Hidayah Sumenep.</p>
+    </div>
+  </section>
+
+  {error ? (
+    <div class="max-w-6xl mx-auto px-4 py-16 text-center">
+      <p class="text-red-500">Gagal memuat berita: {error}</p>
+    </div>
+  ) : articles.length === 0 ? (
+    <div class="max-w-6xl mx-auto px-4 py-16 text-center">
+      <span class="material-symbols-outlined text-6xl text-gray-300 block mb-4">newspaper</span>
+      <h2 class="text-xl font-semibold text-gray-700 mb-2">Belum Ada Berita</h2>
+      <p class="text-gray-500">Berita dan artikel akan muncul di sini setelah dipublikasikan.</p>
+    </div>
+  ) : (
+    <section class="bg-[#f8fafc] py-12">
+      <div class="max-w-6xl mx-auto px-4">
+        <!-- Category Filter -->
+        <div class="flex flex-wrap gap-2 justify-center mb-10">
+          {categories.map(cat => (
+            <button
+              class="px-4 py-2 rounded-full text-sm font-medium transition-all bg-white text-gray-600 border border-gray-200 hover:border-[#1e40af] hover:text-[#1e40af] cursor-pointer"
+              data-category={cat}
+              onclick={`filterCategory('${cat}')`}
+            >
+              {cat === 'all' ? '📰 Semua' : (categoryLabels[cat] || cat)}
+            </button>
+          ))}
+        </div>
+
+        <!-- Featured Article -->
+        {featured && (
+          <a href={`/berita/${featured.slug || featured.id}`} class="block mb-10 group">
+            <div class="relative rounded-2xl overflow-hidden">
+              {featured.featured_image_url ? (
+                <img
+                  src={featured.featured_image_url}
+                  alt={featured.title}
+                  class="w-full h-64 md:h-[420px] object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+              ) : (
+                <div class="w-full h-64 md:h-[420px] bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center">
+                  <span class="material-symbols-outlined text-white/30" style="font-size:120px;">newspaper</span>
+                </div>
+              )}
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+              <div class="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+                <span class="inline-block px-3 py-1 bg-[#1e40af] text-white text-xs font-semibold rounded-full mb-3">
+                  {categoryLabels[featured.category] || featured.category}
+                </span>
+                <h2 class="text-2xl md:text-3xl font-bold text-white mb-2 group-hover:text-blue-200 transition-colors">
+                  {featured.title}
+                </h2>
+                {featured.excerpt && (
+                  <p class="text-gray-300 line-clamp-2 max-w-2xl mb-3">{featured.excerpt}</p>
+                )}
+                <div class="flex items-center gap-3 text-gray-400 text-sm">
+                  {featured.author_name && <span>👤 {featured.author_name}</span>}
+                  <span>📅 {formatDate(featured.published_at || featured.created_at)}</span>
+                </div>
+              </div>
+            </div>
+          </a>
+        )}
+
+        <!-- Articles Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="articles-grid">
+          {rest.map(article => {
+            const icon = categoryIcons[article.category] || 'newspaper';
+            return (
+              <a
+                href={`/berita/${article.slug || article.id}`}
+                class="article-card bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-[#1e40af]/30 hover:shadow-xl transition-all group"
+                data-category={article.category || 'Informasi'}
+              >
+{article.featured_image_url ? (
+                <img
+                  src={article.featured_image_url}
+                  alt={article.title}
+                    class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div class="w-full h-48 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-blue-200" style="font-size:64px;">{icon}</span>
+                  </div>
+                )}
+                <div class="p-5">
+                  <div class="flex items-center gap-2 mb-3">
+                    <span class="px-2 py-0.5 bg-[#1e40af]/10 text-[#1e40af] text-xs font-semibold rounded-full uppercase tracking-wide">
+                      {categoryLabels[article.category] || article.category || 'Informasi'}
+                    </span>
+                    <span class="text-xs text-gray-400">{formatDate(article.published_at || article.created_at)}</span>
+                  </div>
+                  <h3 class="font-bold text-gray-900 line-clamp-2 group-hover:text-[#1e40af] transition-colors mb-2">
+                    {article.title}
+                  </h3>
+                  {article.excerpt && (
+                    <p class="text-sm text-gray-500 line-clamp-2 mb-3">{article.excerpt}</p>
+                  )}
+                  <div class="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
+                    {article.author_name && <span class="text-xs text-gray-400">👤 {article.author_name}</span>}
+                    <span class="text-[#1e40af] text-sm font-medium group-hover:underline">Baca →</span>
+                  </div>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  )}
+</Layout>
+
+<style is:global>
+  .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+</style>
+
+<script is:inline>
+  function filterCategory(cat) {
+    const cards = document.querySelectorAll('.article-card');
+    const buttons = document.querySelectorAll('[data-category]');
+    
+    buttons.forEach(btn => {
+      if (btn.dataset.category === cat) {
+        btn.classList.remove('bg-white', 'text-gray-600', 'border-gray-200');
+        btn.classList.add('bg-[#1e40af]', 'text-white', 'border-[#1e40af]');
+      } else {
+        btn.classList.remove('bg-[#1e40af]', 'text-white', 'border-[#1e40af]');
+        btn.classList.add('bg-white', 'text-gray-600', 'border-gray-200');
+      }
+    });
+
+    cards.forEach(card => {
+      const match = cat === 'all' || card.dataset.category === cat;
+      card.style.display = match ? '' : 'none';
+    });
+  }
+</script>

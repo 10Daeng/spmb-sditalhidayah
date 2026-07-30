@@ -1,0 +1,375 @@
+---
+export const prerender = false;
+---
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Admin - SPMB SDIT Al-Hidayah</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Public Sans', sans-serif;
+      background: linear-gradient(135deg, #f0f7ff 0%, #e8f0fe 50%, #f5f0ff 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .logo-wrapper {
+      width: 72px;
+      height: 72px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      position: relative;
+    }
+    .logo-wrapper::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      z-index: -1;
+      opacity: 0.2;
+    }
+    .logo-wrapper img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+    }
+    .login-header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+    .login-header p {
+      font-size: 14px;
+      color: #6b7280;
+    }
+    .login-card {
+      background: white;
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 10px 40px rgba(0,0,0,0.05);
+      border: 1px solid rgba(229, 231, 235, 0.5);
+    }
+    .error-message {
+      display: none;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      color: #dc2626;
+      font-size: 13px;
+      align-items: center;
+      gap: 8px;
+    }
+    .error-message.show { display: flex; }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    .input-wrapper {
+      position: relative;
+    }
+    .input-wrapper .icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      font-size: 20px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 12px 14px 12px 44px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 12px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #111827;
+      background: #fafafa;
+      transition: all 0.2s;
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: #2563eb;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+    }
+    .form-input::placeholder { color: #9ca3af; }
+    .toggle-password {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #9ca3af;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .toggle-password:hover { color: #6b7280; }
+    .remember-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .remember-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #4b5563;
+      cursor: pointer;
+    }
+    .remember-label input {
+      width: 16px;
+      height: 16px;
+      accent-color: #2563eb;
+    }
+    .forgot-link {
+      font-size: 13px;
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .forgot-link:hover { text-decoration: underline; }
+    .submit-btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+    }
+    .submit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+    }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-text { display: inline; }
+    .btn-loading { display: none; align-items: center; gap: 8px; }
+    .btn-loading.show { display: flex; }
+    .btn-text.hide { display: none; }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 32px;
+    }
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .feature .material-symbols-outlined {
+      font-size: 16px;
+      color: #2563eb;
+    }
+    @media (max-width: 480px) {
+      .login-card { padding: 24px; }
+      .features { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <!-- Header -->
+    <div class="login-header">
+      <div class="logo-wrapper">
+        <img src="/logo-sdit.png" alt="Logo SDIT" onerror="this.style.display='none'; this.parentNode.innerHTML='<span class=\'material-symbols-outlined\' style=\'font-size:32px; color:#2563eb;\'>school</span>';" />
+      </div>
+      <h1>SISTER Admin</h1>
+      <p>SISTER - Sistem Informasi Sekolah Terpadu</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="login-card">
+      <div id="error-message" class="error-message">
+        <span class="material-symbols-outlined" style="font-size:18px;">error</span>
+        <span id="error-text"></span>
+      </div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="email">Email</label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined icon">mail</span>
+            <input type="email" id="email" name="email" required autocomplete="email" placeholder="Masukkan email Anda" class="form-input" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="input-wrapper">
+            <span class="material-symbols-outlined icon">lock</span>
+            <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Masukkan password" class="form-input" style="padding-right: 44px;" />
+            <button type="button" id="toggle-password" class="toggle-password" title="Tampilkan/Sembunyikan password">
+              <span class="material-symbols-outlined" id="pw-icon" style="font-size:20px;">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="remember-row">
+          <label class="remember-label">
+            <input type="checkbox" id="remember" />
+            Ingat saya
+          </label>
+          <a href="#" class="forgot-link" onclick="alert('Hubungi super admin untuk reset password'); return false;">Lupa password?</a>
+        </div>
+
+        <button type="submit" id="submit-btn" class="submit-btn">
+          <span class="btn-text" id="btn-text">Masuk</span>
+          <span class="btn-loading" id="btn-loading">
+            <span class="spinner"></span>
+            Memproses...
+          </span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Features -->
+    <div class="features">
+      <div class="feature">
+        <span class="material-symbols-outlined">security</span>
+        <span>Aman & Terenkripsi</span>
+      </div>
+      <div class="feature">
+        <span class="material-symbols-outlined">verified</span>
+        <span>Autentikasi Modern</span>
+      </div>
+    </div>
+
+    <p class="footer">&copy; 2026 SDIT Al-Hidayah Sumenep. Hak Cipta Dilindungi.</p>
+  </div>
+
+  <script>
+    const form = document.getElementById('login-form');
+    const errorDiv = document.getElementById('error-message');
+    const errorText = document.getElementById('error-text');
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const btnLoading = document.getElementById('btn-loading');
+    const toggleBtn = document.getElementById('toggle-password');
+    const pwIcon = document.getElementById('pw-icon');
+
+    toggleBtn?.addEventListener('click', () => {
+      const pw = document.getElementById('password');
+      if (pw) {
+        const isPassword = pw.type === 'password';
+        pw.type = isPassword ? 'text' : 'password';
+        pwIcon.textContent = isPassword ? 'visibility_off' : 'visibility';
+      }
+    });
+
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorDiv?.classList.remove('show');
+      submitBtn.disabled = true;
+      btnText?.classList.add('hide');
+      btnLoading?.classList.add('show');
+
+      const email = document.getElementById('email')?.value;
+      const password = document.getElementById('password')?.value;
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'login', email, password })
+        });
+        
+        // Debug: log headers
+        console.log('[LOGIN] Response status:', response.status);
+        console.log('[LOGIN] Set-Cookie headers:', response.headers.get('set-cookie'));
+        
+        const data = await response.json();
+        console.log('[LOGIN] Response data:', data);
+        
+        if (data.success) {
+          window.location.href = '/admin/dashboard';
+        } else {
+          errorText.textContent = data.error || 'Login gagal. Periksa email dan password Anda.';
+          if (data.debug) {
+            console.error('[LOGIN] Debug:', data.debug);
+          }
+          errorDiv?.classList.add('show');
+        }
+      } catch (err) {
+        console.error('[LOGIN] Network error:', err);
+        errorText.textContent = 'Terjadi kesalahan jaringan. Coba lagi.';
+        errorDiv?.classList.add('show');
+      } finally {
+        submitBtn.disabled = false;
+        btnText?.classList.remove('hide');
+        btnLoading?.classList.remove('show');
+      }
+    });
+  </script>
+</body>
+</html>

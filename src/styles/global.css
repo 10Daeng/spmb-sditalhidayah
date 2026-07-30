@@ -1,0 +1,197 @@
+@import "tailwindcss";
+
+/* =============================================== */
+/* Custom Animations - Inspired by spmb-frontend  */
+/* =============================================== */
+
+/* Fade In Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade In Down Animation */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide In from Right */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Slide Out to Right */
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Shrink Animation (for progress bar) */
+@keyframes shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* Pulse Ring Animation */
+@keyframes pulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Animation Classes */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-fade-in-down {
+  animation: fadeInDown 0.4s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out forwards;
+}
+
+.animate-slide-out-right {
+  animation: slideOutRight 0.3s ease-in forwards;
+}
+
+.animate-shrink {
+  animation: shrink linear forwards;
+}
+
+.animate-pulse-ring {
+  animation: pulseRing 2s ease-in-out infinite;
+}
+
+/* =============================================== */
+/* Progress Stepper Styles                        */
+/* =============================================== */
+
+.step-connector {
+  @apply h-1 flex-1 mx-2 rounded-full transition-all duration-500;
+}
+
+.step-connector.completed {
+  @apply bg-gradient-to-r from-green-500 to-emerald-500;
+}
+
+.step-connector.pending {
+  @apply bg-gray-200;
+}
+
+/* =============================================== */
+/* Form Styles - Enhanced                         */
+/* =============================================== */
+
+/* Input Focus Ring */
+.input-focus-ring {
+  @apply focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200;
+}
+
+/* Error State */
+.input-error {
+  @apply border-red-500 ring-2 ring-red-100 focus:border-red-500 focus:ring-red-100;
+}
+
+/* Success State */
+.input-success {
+  @apply border-green-500 ring-2 ring-green-100;
+}
+
+/* Disabled State */
+.input-disabled {
+  @apply bg-gray-50 text-gray-400 cursor-not-allowed;
+}
+
+/* =============================================== */
+/* Toast Notification Styles                      */
+/* =============================================== */
+
+.toast-container {
+  @apply fixed top-4 right-4 z-50 flex flex-col gap-3;
+}
+
+.toast {
+  @apply relative overflow-hidden rounded-lg shadow-lg max-w-sm w-full;
+  @apply transform transition-all duration-300 ease-out;
+}
+
+.toast-success {
+  @apply bg-green-50 border-l-4 border-green-500;
+}
+
+.toast-error {
+  @apply bg-red-50 border-l-4 border-red-500;
+}
+
+.toast-warning {
+  @apply bg-yellow-50 border-l-4 border-yellow-500;
+}
+
+.toast-info {
+  @apply bg-blue-50 border-l-4 border-blue-500;
+}
+
+/* =============================================== */
+/* Button Enhancements                            */
+/* =============================================== */
+
+.btn-hover-lift {
+  @apply transform hover:-translate-y-0.5 active:translate-y-0 transition-transform;
+}
+
+.btn-hover-scale {
+  @apply transform hover:scale-105 active:scale-95 transition-transform;
+}
+
+/* =============================================== */
+/* Card Styles                                    */
+/* =============================================== */
+
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+}
+
+.card-glass {
+  @apply bg-white/80 backdrop-blur-sm;
+}

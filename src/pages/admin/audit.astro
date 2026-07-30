@@ -1,0 +1,159 @@
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { supabaseAdmin } from '../../lib/supabase.js';
+
+let logs = [];
+let total = 0;
+
+try {
+  const url = new URL(Astro.request.url);
+  const page = parseInt(url.searchParams.get('page') || '1');
+  const limit = 50;
+  const offset = (page - 1) * limit;
+  const actionFilter = url.searchParams.get('action');
+  const entityType = url.searchParams.get('entity');
+
+  let query = supabaseAdmin
+    .from('activity_logs')
+    .select('*, user:users(name, email, role)', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (actionFilter) {
+    query = query.ilike('action', `%${actionFilter}%`);
+  }
+  if (entityType) {
+    query = query.eq('entity_type', entityType);
+  }
+
+  const { data, error, count } = await query;
+
+  if (!error && data) {
+    logs = data;
+    total = count || 0;
+  }
+} catch (e) { /* table might not exist yet */ }
+
+const actionLabels: Record<string, string> = {
+  'REGISTER_STUDENT_SPMB_V2': 'Indent Baru',
+  'VERIFY_REGISTRATION_APPROVED': 'Verifikasi Disetujui',
+  'VERIFY_REGISTRATION_REJECTED': 'Verifikasi Ditolak',
+  'SCHEDULE_TEST': 'Jadwal Tes',
+  'ANNOUNCE_RESULT': 'Pengumuman Hasil',
+};
+
+const formatDate = (d: string) => {
+  if (!d) return '-';
+  return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+const totalPages = Math.ceil(total / 50);
+---
+
+<AdminLayout title="Audit Trail" activeMenu="audit">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-xl font-bold text-gray-900">Audit Trail</h2>
+      <p class="text-sm text-gray-500 mt-0.5">Riwayat aktivitas dan perubahan di sistem</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="px-5 py-3 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+      <div class="flex items-center gap-3 flex-wrap">
+        <select id="filter-action" onchange="filterAudit()" class="input !w-auto !py-2 !px-3 text-sm">
+          <option value="">Semua Aksi</option>
+          <option value="REGISTER">Indent</option>
+          <option value="VERIFY">Verifikasi</option>
+          <option value="SCHEDULE">Jadwal Tes</option>
+          <option value="ANNOUNCE">Pengumuman</option>
+        </select>
+        <select id="filter-entity" onchange="filterAudit()" class="input !w-auto !py-2 !px-3 text-sm">
+          <option value="">Semua Entitas</option>
+          <option value="registrations">Indent</option>
+          <option value="students">Siswa</option>
+          <option value="articles">Artikel</option>
+          <option value="users">Pengguna</option>
+        </select>
+      </div>
+      <p class="text-xs text-gray-400">{total} log</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Waktu</th>
+            <th>Pengguna</th>
+            <th>Aksi</th>
+            <th>Entitas</th>
+            <th>Detail</th>
+            <th>IP Address</th>
+          </tr>
+        </thead>
+        <tbody id="audit-table">
+          {logs.length === 0 ? (
+            <tr>
+              <td colspan="6" class="text-center text-gray-400 py-12">
+                <span class="material-symbols-outlined text-5xl text-gray-300 block mb-2">history</span>
+                <p class="font-semibold text-gray-500">Belum ada aktivitas</p>
+              </td>
+            </tr>
+          ) : logs.map(log => (
+            <tr class="audit-row" data-action={(log.action || '').toLowerCase()} data-entity={log.entity_type || ''}>
+              <td><span class="text-sm text-gray-600 font-mono">{formatDate(log.created_at)}</span></td>
+              <td>
+                <div class="text-sm">
+                  <span class="font-medium text-gray-900">{log.user?.name || 'Sistem'}</span>
+                  {log.user?.role && <span class="text-xs text-gray-400 ml-1">({log.user.role})</span>}
+                </div>
+              </td>
+              <td>
+                <span class="badge bg-gray-50 text-gray-700">{actionLabels[log.action] || log.action}</span>
+              </td>
+              <td>
+                <span class="text-sm text-gray-600">{log.entity_type || '-'}</span>
+                {log.entity_id && <span class="text-xs text-gray-400 block font-mono">{log.entity_id.substring(0, 8)}...</span>}
+              </td>
+              <td>
+                <div class="text-sm text-gray-600 max-w-xs truncate">
+                  {log.details ? (
+                    typeof log.details === 'string' ? log.details : JSON.stringify(log.details).substring(0, 100)
+                  ) : '-'}
+                </div>
+              </td>
+              <td><span class="text-xs text-gray-400 font-mono">{log.ip_address || '-'}</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    {totalPages > 1 && (
+      <div class="px-5 py-3 border-t border-gray-100 flex justify-between items-center">
+        <span class="text-sm text-gray-500">Halaman {Math.ceil(total / 50) > 0 ? '1' : '0'} dari {totalPages}</span>
+        <div class="flex gap-2">
+          <button class="btn btn-outline text-xs px-3 py-1.5" onclick="alert('Gunakan filter untuk navigasi')">Sebelumnya</button>
+          <button class="btn btn-outline text-xs px-3 py-1.5" onclick="alert('Gunakan filter untuk navigasi')">Berikutnya</button>
+        </div>
+      </div>
+    )}
+  </div>
+</AdminLayout>
+
+<script is:inline>
+  function filterAudit() {
+    const action = document.getElementById('filter-action')?.value?.toLowerCase() || '';
+    const entity = document.getElementById('filter-entity')?.value || '';
+    const rows = document.querySelectorAll('.audit-row');
+    let count = 0;
+
+    rows.forEach(row => {
+      const matchAction = !action || row.dataset.action?.includes(action);
+      const matchEntity = !entity || row.dataset.entity === entity;
+      const visible = matchAction && matchEntity;
+      row.style.display = visible ? '' : 'none';
+      if (visible) count++;
+    });
+  }
+</script>
