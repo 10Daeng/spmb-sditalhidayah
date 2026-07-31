@@ -19,29 +19,25 @@ try {
   siteSettings = data;
 } catch (e) {}
 
-// Fetch registration & student
+// Fetch registration
 const { data: registration, error } = await supabaseAdmin
     .from("registrations")
-    .select(`
-        *,
-        students (
-          id,
-          full_name,
-          nickname,
-          nik,
-          place_of_birth,
-          date_of_birth,
-          gender,
-          address_kk,
-          profile_photo_url
-        )
-      `)
+    .select('*')
     .eq("registration_number", regNumber)
     .single();
 
 if (error || !registration) {
     return new Response('Pendaftaran tidak ditemukan.', { status: 404 });
 }
+
+// Fetch student separately to avoid foreign key issues
+const { data: studentData } = await supabaseAdmin
+    .from("students")
+    .select('*')
+    .eq("registration_id", regNumber)
+    .single();
+    
+registration.students = studentData ? [studentData] : [];
 
 // Fetch settings for fee
 let settings = null;

@@ -11,22 +11,23 @@ import { compressImage } from '../lib/imageCompression';
 const API_BASE_URL = ''; // Relative path for same-origin API (Astro)
 
 // Wrapper component dengan ToastContainer
-const SpmbFormWithToast = () => (
+const SpmbFormWithToast = ({ initialData, isCompletionMode }) => (
     <ToastContainer>
-        <SpmbFormInner />
+        <SpmbFormInner initialData={initialData} isCompletionMode={isCompletionMode} />
     </ToastContainer>
 );
 
-const SpmbFormInner = () => {
+const SpmbFormInner = ({ initialData, isCompletionMode }) => {
     const toast = useToast();
-    const [step, setStep] = useState(1);
+    // Start at step 2 if in completion mode, otherwise step 1
+    const [step, setStep] = useState(isCompletionMode ? 2 : 1);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [registrationResult, setRegistrationResult] = useState(null);
     const [validationErrors, setValidationErrors] = useState([]);
     
     // Initial State - COMPREHENSIVE VERSION
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState(initialData || {
         // --- STEP 0: JENIS PENDAFTARAN ---
         jenisPendaftaran: 'murid_baru',
         
@@ -217,12 +218,28 @@ const SpmbFormInner = () => {
                 errors.push('Minimal salah satu nama orang tua harus diisi');
             }
             
-            const primaryPhone = formData.noHpAyah || formData.noHpIbu;
-            if (!primaryPhone) {
-                errors.push('Minimal satu nomor HP orang tua wajib diisi');
-            } else {
-                const phoneResult = validatePhone(primaryPhone, true);
-                if (!phoneResult.valid) errors.push(`No. HP: ${phoneResult.error}`);
+            const bothDeceased = formData.statusAyah === 'Meninggal' && formData.statusIbu === 'Meninggal';
+            
+            if (!bothDeceased) {
+                const primaryPhone = formData.noHpAyah || formData.noHpIbu;
+                if (!primaryPhone) {
+                    errors.push('Minimal satu nomor HP orang tua wajib diisi');
+                } else {
+                    const phoneResult = validatePhone(primaryPhone, true);
+                    if (!phoneResult.valid) errors.push(`No. HP Orang Tua: ${phoneResult.error}`);
+                }
+            }
+            
+            if (formData.adaWali) {
+                if (!formData.namaWali) errors.push('Nama wali wajib diisi');
+                if (!formData.noHpWali) {
+                    errors.push('No. HP Wali wajib diisi');
+                } else {
+                    const phoneResult = validatePhone(formData.noHpWali, true);
+                    if (!phoneResult.valid) errors.push(`No. HP Wali: ${phoneResult.error}`);
+                }
+            } else if (bothDeceased) {
+                errors.push('Data wali wajib diisi karena kedua orang tua telah meninggal');
             }
         }
         
@@ -256,7 +273,15 @@ const SpmbFormInner = () => {
                 }
             });
 
-            const response = await fetch(`${API_BASE_URL}/api/registration/submit`, {
+            if (isCompletionMode && initialData?.registration_number) {
+                formDataToSend.append('registration_form_number', initialData.registration_number);
+            }
+
+            const endpoint = isCompletionMode 
+                ? `${API_BASE_URL}/api/registration/complete-data` 
+                : `${API_BASE_URL}/api/registration/submit`;
+
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 body: formDataToSend,
             });
@@ -941,12 +966,26 @@ const SpmbFormInner = () => {
                     </div>
                     
                     <div>
-                        <h4 className="font-bold text-gray-900 border-b pb-2 mb-3">Data Orang Tua</h4>
+                        <h4 className="font-bold text-gray-900 border-b pb-2 mb-3">Data Orang Tua / Wali</h4>
                         <div className="grid grid-cols-2 gap-2">
-                            <span className="text-gray-500">Nama Ayah:</span> <span className="font-medium">{formData.namaAyah || '-'}</span>
-                            <span className="text-gray-500">No. HP Ayah:</span> <span className="font-medium">{formData.noHpAyah || '-'}</span>
-                            <span className="text-gray-500">Nama Ibu:</span> <span className="font-medium">{formData.namaIbu || '-'}</span>
-                            <span className="text-gray-500">No. HP Ibu:</span> <span className="font-medium">{formData.noHpIbu || '-'}</span>
+                            <span className="text-gray-500">Nama Ayah:</span> <span className="font-medium">{formData.statusAyah === 'Meninggal' ? 'Meninggal' : formData.namaAyah || '-'}</span>
+                            {formData.statusAyah !== 'Meninggal' && (
+                                <>
+                                    <span className="text-gray-500">No. HP Ayah:</span> <span className="font-medium">{formData.noHpAyah || '-'}</span>
+                                </>
+                            )}
+                            <span className="text-gray-500">Nama Ibu:</span> <span className="font-medium">{formData.statusIbu === 'Meninggal' ? 'Meninggal' : formData.namaIbu || '-'}</span>
+                            {formData.statusIbu !== 'Meninggal' && (
+                                <>
+                                    <span className="text-gray-500">No. HP Ibu:</span> <span className="font-medium">{formData.noHpIbu || '-'}</span>
+                                </>
+                            )}
+                            {formData.adaWali && (
+                                <>
+                                    <span className="text-gray-500">Nama Wali:</span> <span className="font-medium">{formData.namaWali || '-'}</span>
+                                    <span className="text-gray-500">No. HP Wali:</span> <span className="font-medium">{formData.noHpWali || '-'}</span>
+                                </>
+                            )}
                         </div>
                     </div>
                     

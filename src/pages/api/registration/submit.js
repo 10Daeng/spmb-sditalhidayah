@@ -46,7 +46,7 @@ export async function POST({ request }) {
     const namaLengkap = getVal('namaLengkap');
     const namaAyah = getVal('namaAyah');
     const namaIbu = getVal('namaIbu');
-    const primaryPhone = getVal('noHpAyah') || getVal('noHpIbu');
+    const primaryPhone = getVal('noHpAyah') || getVal('noHpIbu') || getVal('noHpWali');
 
     // ============================================
     // Phone-based Rate Limiting (more restrictive)
@@ -174,11 +174,24 @@ export async function POST({ request }) {
 
     // Step 4: Insert into 'registrations'
     const statusAyah = getVal('statusAyah');
+    const statusIbu = getVal('statusIbu');
     const noHpAyah = getVal('noHpAyah');
     const noHpIbu = getVal('noHpIbu');
+    const noHpWali = getVal('noHpWali');
     
-    const primaryContactName = statusAyah === 'Hidup' ? namaAyah : namaIbu;
-    const primaryContactPhone = statusAyah === 'Hidup' ? noHpAyah : noHpIbu;
+    let primaryContactName = namaAyah;
+    let primaryContactPhone = noHpAyah;
+    
+    if (statusAyah === 'Hidup') {
+        primaryContactName = namaAyah;
+        primaryContactPhone = noHpAyah;
+    } else if (statusIbu === 'Hidup') {
+        primaryContactName = namaIbu;
+        primaryContactPhone = noHpIbu;
+    } else {
+        primaryContactName = getVal('namaWali') || namaAyah || namaIbu;
+        primaryContactPhone = noHpWali;
+    }
     
     const tanggalLahir = getVal('tanggalLahir');
     const finalDob = tanggalLahir 

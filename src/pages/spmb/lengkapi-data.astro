@@ -1,25 +1,25 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import SpmbIndentForm from '../../components/SpmbIndentForm.jsx';
+import SpmbLoginAndComplete from '../../components/SpmbLoginAndComplete.jsx';
 ---
 
-<Layout title="SPMB Online - SDIT Al-Hidayah Sumenep">
+<Layout title="Lengkapi Data SPMB - SDIT Al-Hidayah Sumenep">
 	<div class="bg-gradient-to-b from-blue-50 to-white min-h-screen pt-24 pb-12">
 		<main class="container mx-auto px-4">
-			<div class="max-w-2xl mx-auto">
+			<div class="max-w-4xl mx-auto">
 				<div class="text-center mb-10">
 					<h1 class="text-3xl md:text-4xl font-bold text-blue-900 mb-4">
-						Formulir Indent Murid Baru
+						Lengkapi Data Pendaftaran
 					</h1>
 					<p class="text-lg text-gray-600 font-medium">
 						Tahun Ajaran 2026/2027
 					</p>
 					<p class="mt-2 text-sm text-gray-500">
-						Pendaftaran Tahap 1: Booking Kursi
+						Silakan masukkan Nomor Registrasi dan No. HP untuk melanjutkan pengisian data
 					</p>
 				</div>
 				
-				<SpmbIndentForm client:idle />
+				<SpmbLoginAndComplete client:idle />
 
 				<div class="mt-8 text-center text-sm text-gray-500">
 					<p>Butuh bantuan? Hubungi Panitia SPMB: <strong>(0328) 672900</strong></p>

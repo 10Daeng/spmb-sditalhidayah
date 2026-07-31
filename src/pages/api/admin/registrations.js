@@ -293,12 +293,16 @@ export async function POST({ request }) {
     // ========================
     // NEW STATUS PROGRESSIONS
     // ========================
-    if (['set_calon_peserta', 'approve_assessment', 'approve_interview'].includes(action)) {
+    if (['set_calon_peserta', 'approve_assessment', 'approve_interview', 'verify_payment'].includes(action)) {
       let newStatus = '';
       let logAction = '';
       let logMessage = '';
 
-      if (action === 'set_calon_peserta') {
+      if (action === 'verify_payment') {
+        newStatus = 'indent_paid';
+        logAction = 'VERIFY_PAYMENT';
+        logMessage = 'Pembayaran Indent diverifikasi';
+      } else if (action === 'set_calon_peserta') {
         newStatus = 'calon_peserta';
         logAction = 'SET_CALON_PESERTA';
         logMessage = 'Ditetapkan sebagai Calon Peserta';

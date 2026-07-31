@@ -750,9 +750,12 @@ function renderActions(reg) {
   const actions = document.getElementById('modalActions');
   let html = '';
 
-  if (reg.status === 'pending') {
+  if (reg.status === 'pending' || reg.status === 'pending_payment') {
     html += `<button onclick="openRejectModal('${reg.id}')" class="btn bg-rose-50 text-rose-600 hover:bg-rose-100"><span class="material-symbols-outlined">cancel</span> Tolak</button>`;
-    html += `<button onclick="handleApprove('${reg.id}')" class="btn btn-primary"><span class="material-symbols-outlined">check_circle</span> Verifikasi</button>`;
+    html += `<button onclick="handleVerifyPayment('${reg.id}')" class="btn bg-emerald-50 text-emerald-600 hover:bg-emerald-100"><span class="material-symbols-outlined">payments</span> Setujui Pembayaran</button>`;
+  }
+  if (reg.status === 'document_complete' || reg.status === 'verified' || reg.status === 'indent_paid') {
+    html += `<button onclick="handleApprove('${reg.id}')" class="btn btn-primary"><span class="material-symbols-outlined">check_circle</span> Verifikasi Data</button>`;
   }
   if (reg.status === 'verified' || reg.status === 'document_complete') {
     html += `<button onclick="handleSetCalonPeserta('${reg.id}')" class="btn bg-blue-50 text-blue-600 hover:bg-blue-100"><span class="material-symbols-outlined">how_to_reg</span> Tetapkan Calon Peserta</button>`;
@@ -765,6 +768,28 @@ function renderActions(reg) {
 // ========================
 // ACTIONS
 // ========================
+async function handleVerifyPayment(id) {
+  if (!confirm('Tandai pembayaran Indent sudah lunas?')) return;
+  try {
+    const res = await fetch('/api/admin/registrations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ action: 'verify_payment', registrationId: id })
+    });
+    const result = await res.json();
+    if (result.success) {
+      showToast('Pembayaran diverifikasi');
+      closeDetailModal();
+      loadRegistrations();
+    } else {
+      showToast(result.error || 'Gagal', 'error');
+    }
+  } catch (e) {
+    showToast('Terjadi kesalahan', 'error');
+  }
+}
+
 async function handleApprove(id) {
   if (!confirm('Terima dan verifikasi Indent ini?')) return;
   try {
